@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-display: "Cinzel", Georgia, serif;
+}
+
+body {
+  background-color: #05070a;
+  color: #cbd5e1;
+  font-family: var(--font-sans);
+}
+
+/* Cyber Scanning Effect */
+@keyframes cyber-scan {
+  0% { top: 0%; opacity: 0.3; }
+  50% { opacity: 0.8; }
+  100% { top: 100%; opacity: 0.3; }
+}
+
+.scan-beam {
+  animation: cyber-scan 6s linear infinite;
+}
+
+/* Custom Scrollbar styled matching the cyber theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #080b10;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(34, 211, 238, 0.2);
+  border-radius: 3px;
+  border: 1px solid rgba(34, 211, 238, 0.1);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 211, 238, 0.4);
+}
+

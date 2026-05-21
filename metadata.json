@@ -1,0 +1,6 @@
+{
+  "name": "Voynich Manuscript Decipherer",
+  "description": "An interactive botanical analysis, Currier/EVA transcription visualizer, and cryptographic sandbox to work with the legendary Voynich Manuscript, specifically Folio f34v.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
