@@ -89,10 +89,27 @@ export const DocumentLoader: React.FC<DocumentLoaderProps> = ({
     setPdfLoading(true);
     setErrorMessage("");
     try {
-      // Use local direct fetch for local paths to avoid server-side Node proxy crashes or CORS blocks
       const isLocal = url.startsWith("/") || url.startsWith("http://localhost") || url.startsWith("http://127.0.0.1");
-      const fetchUrl = isLocal ? url : `/api/proxy-pdf?url=${encodeURIComponent(url)}`;
-      const response = await fetch(fetchUrl);
+      let response: Response;
+      let usedProxy = false;
+
+      try {
+        // Try fetching directly first. This allows CORS-enabled URLs (like Firebase Storage)
+        // to load perfectly in the client browser without needing a server-side proxy (useful on Vercel).
+        response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Direct fetch failed with status: ${response.status}`);
+        }
+      } catch (directErr) {
+        console.log("Direct fetch failed or was blocked by CORS. Attempting to use proxy...", directErr);
+        if (!isLocal) {
+          const proxyUrl = `/api/proxy-pdf?url=${encodeURIComponent(url)}`;
+          response = await fetch(proxyUrl);
+          usedProxy = true;
+        } else {
+          throw directErr;
+        }
+      }
       
       if (!response.ok) {
         let detailedError = "";
@@ -104,8 +121,8 @@ export const DocumentLoader: React.FC<DocumentLoaderProps> = ({
         }
 
         const baseMsg = language === "it" 
-          ? (isLocal ? "Impossibile caricare il file locale" : "Impossibile scaricare il documento tramite proxy")
-          : (isLocal ? "Could not load local file" : "Could not fetch document via proxy");
+          ? (usedProxy ? "Impossibile scaricare il documento tramite proxy" : "Impossibile caricare il file")
+          : (usedProxy ? "Could not fetch document via proxy" : "Could not load file");
         
         throw new Error(detailedError ? `${baseMsg}: ${detailedError}` : baseMsg);
       }

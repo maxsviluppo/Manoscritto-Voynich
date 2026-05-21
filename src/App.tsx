@@ -181,7 +181,7 @@ export default function App() {
   const [zoomOpen, setZoomOpen] = useState<boolean>(false);
   const [zoomLevel, setZoomLevel] = useState<number>(100);
 
-  const voynichPdfUrl = "/Voynich-Manuscript.pdf";
+  const voynichPdfUrl = "https://github.com/maxsviluppo/Manoscritto-Voynich/releases/download/pdf/Voynich-Manuscript.pdf";
 
   const handleApiKeyChange = (key: string) => {
     setCustomApiKey(key);
