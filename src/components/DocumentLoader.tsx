@@ -89,9 +89,10 @@ export const DocumentLoader: React.FC<DocumentLoaderProps> = ({
     setPdfLoading(true);
     setErrorMessage("");
     try {
-      // Use our internal proxy to avoid CORS
-      const proxyUrl = `/api/proxy-pdf?url=${encodeURIComponent(url)}`;
-      const response = await fetch(proxyUrl);
+      // Use local direct fetch for local paths to avoid server-side Node proxy crashes or CORS blocks
+      const isLocal = url.startsWith("/") || url.startsWith("http://localhost") || url.startsWith("http://127.0.0.1");
+      const fetchUrl = isLocal ? url : `/api/proxy-pdf?url=${encodeURIComponent(url)}`;
+      const response = await fetch(fetchUrl);
       
       if (!response.ok) {
         let detailedError = "";
@@ -103,8 +104,8 @@ export const DocumentLoader: React.FC<DocumentLoaderProps> = ({
         }
 
         const baseMsg = language === "it" 
-          ? "Impossibile scaricare il documento tramite proxy" 
-          : "Could not fetch document via proxy";
+          ? (isLocal ? "Impossibile caricare il file locale" : "Impossibile scaricare il documento tramite proxy")
+          : (isLocal ? "Could not load local file" : "Could not fetch document via proxy");
         
         throw new Error(detailedError ? `${baseMsg}: ${detailedError}` : baseMsg);
       }

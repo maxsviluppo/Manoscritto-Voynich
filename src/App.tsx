@@ -1,145 +1,272 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Hotspot, Theory, LetterMap, DecryptionResult } from "./types";
-import { FO_F34V_HOTSPOTS, DECRYPTION_THEORIES, EVA_ALPHABET } from "./data";
-import { ManuscriptMap } from "./components/ManuscriptMap";
+import { DECRYPTION_THEORIES, EVA_ALPHABET } from "./data";
 import { VoynichText } from "./components/VoynichText";
 import { DocumentLoader } from "./components/DocumentLoader";
-import { 
-  Compass, 
-  Brain, 
-  Keyboard, 
-  Sparkles, 
-  RefreshCw, 
-  Sliders, 
-  BookOpen, 
-  FileText, 
-  Languages, 
-  ChevronRight, 
-  TrendingUp, 
-  Info, 
-  CheckCircle2, 
+import {
+  Compass,
+  Brain,
+  Keyboard,
+  Sparkles,
+  Sliders,
+  BookOpen,
+  FileText,
+  Languages,
+  Info,
   HelpCircle,
-  Hash
+  Key,
+  Eye,
+  EyeOff,
+  ZoomIn,
+  ZoomOut,
+  X,
+  Maximize2,
+  Minus,
+  Plus,
+  RotateCcw
 } from "lucide-react";
 
+// ─────────────────────────────────────────────
+//  STATIC DATA (hotspots and theories mirror
+//  what the compiled bundle has at runtime)
+// ─────────────────────────────────────────────
+const HOTSPOTS: Hotspot[] = [
+  {
+    id: "flowers",
+    name: "Inflorescence (Top Bud)",
+    nameIt: "Infiorescenza (Bocciolo Apicale)",
+    x: 48, y: 11, width: 14, height: 10,
+    description: "The crown of the plant has a dark, shaded semi-spherical capsule. Historically identified with poppy pods, pomegranate seeds, or customized alchemical capsules.",
+    descriptionIt: "La cima presenta una capsula semisferica scura e sfumata. Storicamente accostata al papavero da oppio, al melograno, o ad capsule protettive racchiuse ideate dagli alchimisti del XV secolo.",
+    evaTranscription: "",
+  },
+  {
+    id: "green_leaves",
+    name: "Fresh Green Foliage",
+    nameIt: "Fogliame Verde Smeraldo",
+    x: 23, y: 28, width: 25, height: 18,
+    description: "Symmetric leaves on lateral branches coated with a deep green pigment (likely copper verdigris). Some leaves remain uncolored draft templates.",
+    descriptionIt: "Foglie simmetriche sui rami laterali colorate con un pigmento verde profondo (verderame). La disposizione si alterna ritmicamente con rami aventi foglie ocra.",
+    evaTranscription: "",
+  },
+  {
+    id: "yellow_leaves",
+    name: "Deciduous Yellow Foliage",
+    nameIt: "Fogliame Giallo Autunnale",
+    x: 52, y: 20, width: 23, height: 18,
+    description: "Opposite leaves colored of light ochre. This bicoloration might express a dry state, biological phases, or alchemical hot/cold polarities.",
+    descriptionIt: "Foglie opposte tinte di ocra chiaro. Questa bicolorazione potrebbe indicare uno stato essiccato del vegetale, fasi biologiche o polarità alchemiche caldo/freddo.",
+    evaTranscription: "",
+  },
+  {
+    id: "roots",
+    name: "Stylized Rhizome & Soil",
+    nameIt: "Rizoma e Terreno Tratteggiato",
+    x: 18, y: 81, width: 63, height: 15,
+    description: "A solid, scaly root horizontal block resembling a scaly bulb or tuber, standing over stylized hills drawn with wavy hatching strokes.",
+    descriptionIt: "Uscendo da un bulbo squadrato, la radice possiede un fusto orizzontale scaglioso che posa su basse collinette tratteggiate ondulate tipiche dell'autore.",
+    evaTranscription: "",
+  },
+  {
+    id: "paragraph_top_left",
+    name: "Paragraph A (Top Left)",
+    nameIt: "Paragrafo A (In Alto a Sinistra)",
+    x: 16, y: 50, width: 25, height: 11,
+    description: "Introductory paragraph surrounding the left side of the stem, featuring common Voynich beginnings and repetitive syllable grids.",
+    descriptionIt: "Paragrafo di apertura a sinistra del fusto. Contiene termini corti con la classica frequenza ripetitiva tipica dei paragrafi erboristici Voynich.",
+    evaTranscription: `tfccy dready or\no tteeo dyedy ot oorg\n8o ttey otteotey oty\n8or dtoltco 8an 8an`,
+    translationIt: "Raccogli le foglie bicolore mature e falle bollire nel vaso all'alba. Posa tre gocce sul ciglio dell'occhio malato per riposare l'anima tormentata.",
+    translationEn: "Gather mature bi-colored leaves and boil them in the morning vessel. Place three drops upon the ailing eye to soothe the restless mind.",
+    wordByWord: [
+      { voynichWord: "tfccy", translation: "Raccogli ed estrai", explanation: "Verbo d'azione iniziale tipico dei ricettari medievali." },
+      { voynichWord: "dready", translation: "le foglie fresche", explanation: "Termine indicante fogliame o parti verdi della pianta." },
+      { voynichWord: "or", translation: "di colore verde e ocra", explanation: "Congiunzione o aggettivo descrittivo del bicolore." },
+      { voynichWord: "8o", translation: "esattamente tre gocce", explanation: "Prefisso numerico quantitativo o frazione alchemica." },
+      { voynichWord: "ttey", translation: "sulla palpebra o bordo", explanation: "Indicazione anatomica della zona d'applicazione." },
+      { voynichWord: "8an", translation: "agitata dal delirio", explanation: "Stato d'inquietudine o febbre alta del paziente." },
+    ]
+  },
+  {
+    id: "paragraph_top_right",
+    name: "Paragraph B (Top Right)",
+    nameIt: "Paragrafo B (In Alto a Destra)",
+    x: 58, y: 52, width: 35, height: 10,
+    description: "Paragraph on the right side of the main stem, featuring double-loop cursive-like glyphs ('gallows').",
+    descriptionIt: "Paragrafo a destra dello stelo. Fornisce parole lunghe e ricche di lettere 'gallows' a doppia asola (caratteri t e k).",
+    evaTranscription: `ot tteey oror dtan\n8oro dttoda ottoda8 cro8y\n8 ttooddy ettey totteorody 8an\n2ooudy eeolto8a`,
+    translationIt: "Unisci gli steli secchi del fiore d'oro con l'acqua sorgiva del monte sacro. Mescola lentamente finché la pozione non rilascia una fitta nebbia argentea.",
+    translationEn: "Mix the withered golden stems with spring water from the high mount. Stir slowly until the liquor emits a thick, silvery mist.",
+    wordByWord: [
+      { voynichWord: "ot", translation: "Unisci / Mescola insieme", explanation: "Azione di combinazione di ingredienti secchi." },
+      { voynichWord: "tteey", translation: "le parti legnose dello stelo", explanation: "Riferimento ai rami o legnetti del fiore." },
+      { voynichWord: "8oro", translation: "dorato", explanation: "Colore giallo brillante o valore nobile solare." },
+      { voynichWord: "8an", translation: "non produce o esala", explanation: "Emissione di sostanze volatili." },
+    ]
+  },
+  {
+    id: "paragraph_bottom_left",
+    name: "Paragraph C (Bottom Left)",
+    nameIt: "Paragrafo C (In Basso a Sinistra)",
+    x: 16, y: 62, width: 32, height: 16,
+    description: "Large paragraph on lower-left containing complex ligature clusters. Notice the highly nested letters resembling 15th-century abbreviations.",
+    descriptionIt: "Grande blocco in basso a sinistra contenente sequenze di lettere concatenate ('ch', 'sh', 'ol'). Lo stile richiama molto le abbreviazioni notarili del XV secolo.",
+    evaTranscription: `totla8 dror 8and dteoa8\ncrotly cror dteor 8tor ottas\nte or tteee occor 8or tteey\nottorteor llot tltey cror lta\ndor ottor cror 8ody lta 8an\ntlan ctotloccy 8as croda`,
+    translationIt: "L'autunno ritira la linfa dai rami inferiori per raccoglierla nel fusto grasso. Cuoci il rizoma scaglioso sul fuoco lento fino a ridurlo in pasta lenitiva per le infezioni della pelle.",
+    translationEn: "Autumn draws the sap down from the lower branches into the swollen stalk. Roast the scaly rhizome over a slow flame for a soothing ointment against dermal plagues.",
+    wordByWord: [
+      { voynichWord: "totla8", translation: "Il tempo freddo del raccolto", explanation: "Riferimento alla stagione autunnale." },
+      { voynichWord: "dror", translation: "richiama o nasconde", explanation: "Azione naturale di riflusso della linfa." },
+      { voynichWord: "8and", translation: "il fluido vitale", explanation: "Sostanza nutritiva della pianta (linfa)." },
+      { voynichWord: "8an", translation: "colpita dal male", explanation: "Tessuto infetto o dolorante." },
+    ]
+  },
+  {
+    id: "paragraph_bottom_right",
+    name: "Paragraph D (Bottom Right)",
+    nameIt: "Paragrafo D (In Basso a Destra)",
+    x: 53, y: 64, width: 40, height: 16,
+    description: "The concluding block on the right, ending with the standard 'tor cro8ad' formula, found in many Voynich herbal pages.",
+    descriptionIt: "Blocco conclusivo sulla destra. Termina con la tipica formula ripetitiva 'tor cro8ad', ricorrente nelle chiusure di decine di capitoli botanici.",
+    evaTranscription: `8an crty tlo8a olland crofdy\n8o rccca crodo qor cry ttey\nottos 8or 8oro qttos 8or cro8y\ncror etteor crody ctor 8and\ncroy sotol ottor 8ad croda\n2crody tor cro8ad`,
+    translationIt: "Conserva la miscela al riparo dal sole d'inverno. Somministra due cucchiai per lenire la tosse cupa ed indurre un sonno ristoratore privo di incubi molesti. Sigilla con cera vergine.",
+    translationEn: "Store this mixture safe from the harsh winter sun. Administer two spoonfuls to quiet the heavy cough and induce a blessed sleep free of bad dreams. Seal with virgin wax.",
+    wordByWord: [
+      { voynichWord: "8an", translation: "Custodisci in luogo asciutto", explanation: "Istruzioni di conservazione a lungo termine." },
+      { voynichWord: "crty", translation: "il preparato filtrato", explanation: "Oggetto della conservazione." },
+      { voynichWord: "tor", translation: "preservi intatta", explanation: "Mantenimento dei principi attivi." },
+      { voynichWord: "cro8ad", translation: "la sua virtù medicamentosa", explanation: "Efficacia curativa nel tempo." },
+    ]
+  },
+];
+
 export default function App() {
-  const [language, setLanguage] = useState<"it" | "en">("it");
+  const language = useState<"it" | "en">("it");
+  const [lang, setLang] = language;
+
   const [activeTab, setActiveTab] = useState<"analyzer" | "sandbox" | "keyboard">("analyzer");
-  
-  // Selected hotspot for local inspection and AI query
-  const [selectedHotspot, setSelectedHotspot] = useState<Hotspot | null>(FO_F34V_HOTSPOTS[0]);
-  
-  // Custom AI query state
+  const [selectedHotspot, setSelectedHotspot] = useState<Hotspot>(HOTSPOTS[0]);
   const [customQuestion, setCustomQuestion] = useState<string>("");
   const [aiResponse, setAiResponse] = useState<string>("");
   const [aiLoading, setAiLoading] = useState<boolean>(false);
 
-  // Decryption Sandbox state
+  // Sandbox state
   const [selectedParagraph, setSelectedParagraph] = useState<Hotspot>(
-    FO_F34V_HOTSPOTS.find(h => h.id === "paragraph_top_left") || FO_F34V_HOTSPOTS[4]
+    HOTSPOTS.find(h => h.id === "paragraph_top_left") || HOTSPOTS[4]
   );
+  const [scannedParagraphs, setScannedParagraphs] = useState<Hotspot[]>([]);
   const [selectedTheory, setSelectedTheory] = useState<Theory>(DECRYPTION_THEORIES[0]);
   const [letterMapping, setLetterMapping] = useState<Record<string, string>>(
     DECRYPTION_THEORIES[0].exampleSubstitution || {}
   );
-  
-  // AI auto-decrypt states
   const [autoDecryptLoading, setAutoDecryptLoading] = useState<boolean>(false);
   const [autoDecryptResult, setAutoDecryptResult] = useState<DecryptionResult | null>(null);
-
-  // Interactive Voynich Keyboard state
   const [typedText, setTypedText] = useState<string>("8am croda ttey");
 
-  // Custom document integration states
-  const [documentSource, setDocumentSource] = useState<"default" | "custom" | "voynich_pdf">("default");
+  // Document source state
+  const [documentSource, setDocumentSource] = useState<"voynich_pdf" | "custom">("voynich_pdf");
   const [isCustomActive, setIsCustomActive] = useState<boolean>(false);
   const [activeUploadedImage, setActiveUploadedImage] = useState<string>("");
   const [allUploadedImages, setAllUploadedImages] = useState<string[]>([]);
-  
-  const VOYNICH_PDF_URL = "https://archive.org/download/TheVoynichManuscript/The%20Voynich%20Manuscript.pdf";
 
-  // Analyze custom page via Gemini
-  const handleAnalyzeCustomPage = async (base64Data: string, pageNum: number) => {
+  // API key state
+  const [customApiKey, setCustomApiKey] = useState<string>(
+    () => localStorage.getItem("voynich_gemini_api_key") || ""
+  );
+  const [showApiKey, setShowApiKey] = useState<boolean>(false);
+
+  // Response cache
+  const [responseCache, setResponseCache] = useState<Record<string, string>>({});
+
+  // Zoom state
+  const [zoomOpen, setZoomOpen] = useState<boolean>(false);
+  const [zoomLevel, setZoomLevel] = useState<number>(100);
+
+  const voynichPdfUrl = "/Voynich-Manuscript.pdf";
+
+  const handleApiKeyChange = (key: string) => {
+    setCustomApiKey(key);
+    localStorage.setItem("voynich_gemini_api_key", key);
+  };
+
+  const apiHeaders = () => ({
+    "Content-Type": "application/json",
+    ...(customApiKey ? { "x-api-key": customApiKey } : {}),
+  });
+
+  // ── Handlers ────────────────────────────────
+
+  const handleAnalyzeCustomPage = async (imageBase64: string, pageNum: number) => {
     setAiLoading(true);
     setAiResponse("");
     setActiveTab("analyzer");
-
     try {
-      const resp = await fetch("/api/analyze", {
+      const res = await fetch("/api/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: apiHeaders(),
         body: JSON.stringify({
           elementId: `custom_page_${pageNum}`,
-          label: language === "it" ? `Pagina Caricata ${pageNum}` : `Uploaded Page ${pageNum}`,
-          imageBase64: base64Data,
-          customQuestion: customQuestion || (language === "it" 
+          label: lang === "it" ? `Pagina Caricata ${pageNum}` : `Uploaded Page ${pageNum}`,
+          imageBase64,
+          customQuestion: customQuestion || (lang === "it"
             ? `Analizza la pagina ${pageNum} del documento. Fornisci SEMPRE una sezione 'TRASCRIZIONE EVA:' con i glifi identificati e una sezione 'TRADUZIONE:' con l'ipotesi di significato.`
             : `Analyze page ${pageNum}. Always include a 'TRASCRIZIONE EVA:' section with identified glyphs and a 'TRANSLATION:' section with the hypothesized meaning.`),
-          language
-        })
+          language: lang,
+        }),
       });
-
-      const data = await resp.json();
+      const data = await res.json();
       if (data.success) {
         setAiResponse(data.text);
-        setAiCache(prev => ({ ...prev, [base64Data]: data.text }));
+        setResponseCache(prev => ({ ...prev, [imageBase64]: data.text }));
       } else {
-        setAiResponse(language === "it"
+        setAiResponse(lang === "it"
           ? `Errore durante l'analisi della pagina: ${data.error}`
-          : `Page analysis failed: ${data.error}`
-        );
+          : `Page analysis failed: ${data.error}`);
       }
-    } catch (err: any) {
-      setAiResponse(language === "it"
-        ? `Impossibile comunicare con il server per l'analisi: ${err.message}`
-        : `Could not reach backend parser: ${err.message}`
-      );
+    } catch (e: any) {
+      setAiResponse(lang === "it"
+        ? `Impossibile comunicare con il server per l'analisi: ${e.message}`
+        : `Could not reach backend parser: ${e.message}`);
     } finally {
       setAiLoading(false);
     }
   };
 
-  // Analyze all sheets sequentially
-  const handleAnalyzeCustomAll = async (base64Array: string[]) => {
+  const handleAnalyzeCustomAll = async (images: string[]) => {
     setAiLoading(true);
     setAiResponse("");
     setActiveTab("analyzer");
-
     try {
-      const resp = await fetch("/api/analyze", {
+      const res = await fetch("/api/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: apiHeaders(),
         body: JSON.stringify({
           elementId: "custom_full_doc",
-          label: language === "it" ? `Documento Completo (${base64Array.length} pag)` : `Full Document (${base64Array.length} pages)`,
-          imagesBase64: base64Array,
-          customQuestion: customQuestion || (language === "it"
-            ? `Esegui uno studio approfondito di tutte le ${base64Array.length} pagine di questo documento. Cerca correlazioni visuali, coerenza stilistica di scrittura e formula un responso paleografico sintetico sul manoscritto.`
-            : `Analyze all ${base64Array.length} pages of this custom document sequentially. Track correlations, scribal consistency, and formulate a unified paleographic synopsis.`),
-          language
-        })
+          label: lang === "it" ? `Documento Completo (${images.length} pag)` : `Full Document (${images.length} pages)`,
+          imagesBase64: images,
+          customQuestion: customQuestion || (lang === "it"
+            ? `Esegui uno studio approfondito di tutte le ${images.length} pagine di questo documento. Cerca correlazioni visuali, coerenza stilistica di scrittura e formula un responso paleografico sintetico sul manoscritto.`
+            : `Analyze all ${images.length} pages of this custom document sequentially. Track correlations, scribal consistency, and formulate a unified paleographic synopsis.`),
+          language: lang,
+        }),
       });
-
-      const data = await resp.json();
+      const data = await res.json();
       if (data.success) {
         setAiResponse(data.text);
       } else {
-        setAiResponse(language === "it"
+        setAiResponse(lang === "it"
           ? `Errore durante l'analisi globale: ${data.error}`
-          : `Full analysis failed: ${data.error}`
-        );
+          : `Full analysis failed: ${data.error}`);
       }
-    } catch (err: any) {
-      setAiResponse(language === "it"
-        ? `Rete non raggiungibile per studio globale: ${err.message}`
-        : `Network problem parsing document: ${err.message}`
-      );
+    } catch (e: any) {
+      setAiResponse(lang === "it"
+        ? `Rete non raggiungibile per studio globale: ${e.message}`
+        : `Network problem parsing document: ${e.message}`);
     } finally {
       setAiLoading(false);
     }
   };
 
-  // Load example substitution map whenever the selected historical theory shifts
+  // Sync theory mapping when theory changes
   useEffect(() => {
     if (selectedTheory.exampleSubstitution) {
       setLetterMapping(selectedTheory.exampleSubstitution);
@@ -149,107 +276,147 @@ export default function App() {
     setAutoDecryptResult(null);
   }, [selectedTheory]);
 
-  // Sync Sandbox with Custom Analysis
-  useEffect(() => {
-    if (documentSource === "custom" || documentSource === "voynich_pdf") {
-      if (aiResponse && !aiLoading) {
-        // Create a virtual hotspot for the custom page to be used in Sandbox
-        const virtualHotspot: Hotspot = {
-          id: "custom_active_scan",
-          name: language === "it" ? "Pagina Caricata (Analisi Attiva)" : "Uploaded Page (Active Scan)",
-          nameIt: "Pagina Caricata (Analisi Attiva)",
-          x: 0, y: 0, width: 100, height: 100,
-          description: language === "it" ? "Risultati dell'analisi IA corrente." : "Current AI analysis results.",
-          descriptionIt: "Risultati dell'analisi IA corrente.",
-          evaTranscription: extractEvaTranscription(aiResponse),
-          translationIt: extractTranslation(aiResponse, "it"),
-          translationEn: extractTranslation(aiResponse, "en")
-        };
-        setSelectedParagraph(virtualHotspot);
-      } else if (!aiLoading) {
-        // Reset or set to a placeholder when no analysis is available for the current custom page
-        const placeholder: Hotspot = {
-          id: "custom_no_scan",
-          name: language === "it" ? "In attesa di analisi..." : "Awaiting scan...",
-          nameIt: "In attesa di analisi...",
-          x: 0, y: 0, width: 0, height: 0,
-          description: language === "it" ? "Esegui una scansione per visualizzare i dati." : "Run a scan to view data.",
-          descriptionIt: "Esegui una scansione per visualizzare i dati.",
-          evaTranscription: "",
-          translationIt: "",
-          translationEn: ""
-        };
-        setSelectedParagraph(placeholder);
+  // Parse scanned paragraphs from AI response
+  function parseScannedParagraphs(text: string): Hotspot[] {
+    if (!text) return [];
+    const jsonBlockRe = /```json\s*([\s\S]*?)\s*```/;
+    const arrayRe = /(\[\s*\{\s*"id"[\s\S]*\}\s*\])/;
+    let raw = "";
+    const blockMatch = text.match(jsonBlockRe);
+    if (blockMatch && blockMatch[1]) {
+      raw = blockMatch[1].trim();
+    } else {
+      const arrMatch = text.match(arrayRe);
+      if (arrMatch && arrMatch[1]) raw = arrMatch[1].trim();
+    }
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed.map((w: any, idx: number) => ({
+            id: w.id || `scanned_par_${idx + 1}`,
+            name: w.name || w.nameIt || `Paragraph ${idx + 1}`,
+            nameIt: w.nameIt || w.name || `Paragrafo ${idx + 1}`,
+            x: w.x || 0, y: w.y || 0, width: w.width || 0, height: w.height || 0,
+            description: w.description || w.descriptionIt || "",
+            descriptionIt: w.descriptionIt || w.description || "",
+            evaTranscription: w.evaTranscription || w.eva || "",
+            translationIt: w.translationIt || w.translation || "",
+            translationEn: w.translationEn || w.translation || "",
+            wordByWord: Array.isArray(w.wordByWord)
+              ? w.wordByWord.map((ww: any) => ({
+                  voynichWord: ww.voynichWord || ww.word || ww.voynich || "",
+                  translation: ww.translation || ww.meaning || ww.translationIt || "",
+                  explanation: ww.explanation || ww.desc || ww.explanationIt || "",
+                }))
+              : [],
+          }));
+        }
+      } catch (err) {
+        console.error("JSON parsing error:", err);
       }
     }
-  }, [aiResponse, aiLoading, documentSource, language]);
+    return [];
+  }
 
-  // Helper to extract EVA text or sections from AI response
-  function extractEvaTranscription(text: string): string {
+  // Extract EVA from free-text AI response
+  function extractEvaFromText(text: string): string {
     const lines = text.split("\n");
-    // Look for patterns that look like EVA or a specific section
-    const startIdx = lines.findIndex(l => 
-      l.toUpperCase().includes("EVA") || 
+    const evaIdx = lines.findIndex(l =>
+      l.toUpperCase().includes("EVA") ||
       l.toUpperCase().includes("TRASCRIZIONE") ||
       l.toUpperCase().includes("TRANSCRIPTION")
     );
-    
-    if (startIdx !== -1) {
-      // Collect lines until next header or end
-      const collected = [];
-      for (let i = startIdx + 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-        if (line.includes(":") && (line.includes("TRADUZIONE") || line.includes("ANALISI"))) break;
-        if (line.startsWith("#") || line.startsWith("**")) break;
-        collected.push(line);
-        if (collected.length > 10) break; // limit
+    if (evaIdx !== -1) {
+      const out: string[] = [];
+      for (let i = evaIdx + 1; i < lines.length; i++) {
+        const ln = lines[i].trim();
+        if (ln && (
+          (ln.includes(":") && (ln.includes("TRADUZIONE") || ln.includes("ANALISI"))) ||
+          ln.startsWith("#") || ln.startsWith("**") ||
+          (out.push(ln), out.length > 10)
+        )) break;
       }
-      if (collected.length > 0) return collected.join("\n");
+      if (out.length > 0) return out.join("\n");
     }
-    
-    // Fallback: try to find any text that looks like EVA (lowercase, words like '8am', 'odal')
-    const evaRegex = /[a-z89]{3,}/g;
-    const matches = text.match(evaRegex);
-    if (matches && matches.length > 5) {
-      return matches.slice(0, 20).join(" ");
-    }
-
-    return text.slice(0, 200) + "...";
+    const evaRe = /[a-z89]{3,}/g;
+    const matches = text.match(evaRe);
+    return matches && matches.length > 5
+      ? matches.slice(0, 20).join(" ")
+      : text.slice(0, 200) + "...";
   }
 
-  function extractTranslation(text: string, lang: string): string {
-    const searchValues = lang === "it" 
-      ? ["TRADUZIONE", "ITALIANO", "TESTO CHIARO"] 
+  // Extract translation from AI text
+  function extractTranslation(text: string, targetLang: string): string {
+    const keywords = targetLang === "it"
+      ? ["TRADUZIONE", "ITALIANO", "TESTO CHIARO"]
       : ["TRANSLATION", "ENGLISH", "CLEARTEXT"];
-      
     const lines = text.split("\n");
-    let foundIdx = -1;
-    
-    for (const search of searchValues) {
-      foundIdx = lines.findIndex(l => l.toUpperCase().includes(search));
-      if (foundIdx !== -1) break;
+    let idx = -1;
+    for (const kw of keywords) {
+      idx = lines.findIndex(l => l.toUpperCase().includes(kw));
+      if (idx !== -1) break;
     }
-
-    if (foundIdx !== -1) {
-      const collected = [];
-      for (let i = foundIdx + 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-        if (line.includes(":") && (line.includes("EVA") || line.includes("TRASCRIZIONE"))) break;
-        if (line.startsWith("#") || (line.startsWith("**") && !line.includes(searchValues[0]))) break;
-        collected.push(line);
-        if (collected.length > 5) break; 
+    if (idx !== -1) {
+      const out: string[] = [];
+      for (let i = idx + 1; i < lines.length; i++) {
+        const ln = lines[i].trim();
+        if (ln && (
+          (ln.includes(":") && (ln.includes("EVA") || ln.includes("TRASCRIZIONE"))) ||
+          ln.startsWith("#") ||
+          (ln.startsWith("**") && !ln.includes(keywords[0])) ||
+          (out.push(ln), out.length > 5)
+        )) break;
       }
-      if (collected.length > 0) return collected.join(" ").replace(/[*_]/g, "");
+      if (out.length > 0) return out.join(" ").replace(/[*_]/g, "");
     }
     return "";
   }
 
-  // Reset the paleographic botanical analysis output when changing hotspots or uploaded custom files/pages
-  // Improved: Load from cache if available to prevent "reporting previous" or losing data on page switch
-  const [aiCache, setAiCache] = useState<Record<string, string>>({});
+  // Sync aiResponse → scannedParagraphs + selectedParagraph
+  useEffect(() => {
+    if (aiResponse && !aiLoading) {
+      const parsed = parseScannedParagraphs(aiResponse);
+      if (parsed.length > 0) {
+        setScannedParagraphs(parsed);
+        setSelectedParagraph(parsed[0]);
+      } else {
+        setScannedParagraphs([]);
+        const activeEntry: Hotspot = {
+          id: "custom_active_scan",
+          name: lang === "it" ? "Pagina Caricata (Analisi Attiva)" : "Uploaded Page (Active Scan)",
+          nameIt: "Pagina Caricata (Analisi Attiva)",
+          x: 0, y: 0, width: 100, height: 100,
+          description: lang === "it" ? "Risultati dell'analisi IA corrente." : "Current AI analysis results.",
+          descriptionIt: "Risultati dell'analisi IA corrente.",
+          evaTranscription: extractEvaFromText(aiResponse),
+          translationIt: extractTranslation(aiResponse, "it"),
+          translationEn: extractTranslation(aiResponse, "en"),
+        };
+        setSelectedParagraph(activeEntry);
+      }
+    } else if (!aiLoading) {
+      setScannedParagraphs([]);
+      if (documentSource === "voynich_pdf") {
+        const def = HOTSPOTS.find(h => h.id === "paragraph_top_left") || HOTSPOTS[4];
+        setSelectedParagraph(def);
+      } else {
+        setSelectedParagraph({
+          id: "custom_no_scan",
+          name: lang === "it" ? "In attesa di analisi..." : "Awaiting scan...",
+          nameIt: "In attesa di analisi...",
+          x: 0, y: 0, width: 0, height: 0,
+          description: lang === "it" ? "Esegui una scansione per visualizzare i dati." : "Run a scan to view data.",
+          descriptionIt: "Esegui una scansione per visualizzare i dati.",
+          evaTranscription: "",
+          translationIt: "",
+          translationEn: "",
+        });
+      }
+    }
+  }, [aiResponse, aiLoading, documentSource, lang]);
 
+  // Cache-based response restore on hotspot/image change
   useEffect(() => {
     let key = "none";
     if (documentSource === "custom" || documentSource === "voynich_pdf") {
@@ -257,99 +424,81 @@ export default function App() {
     } else {
       key = selectedHotspot?.id || "none";
     }
-    
-    if (aiCache[key]) {
-      setAiResponse(aiCache[key]);
+    if (responseCache[key]) {
+      setAiResponse(responseCache[key]);
     } else {
       setAiResponse("");
     }
   }, [selectedHotspot, activeUploadedImage, documentSource]);
 
-  // Handler to perform full paleographic image search / region query using server-side Gemini
-  const handleConsultAi = async (spot: Hotspot | null, overrideQuestion?: string) => {
+  const handleConsultAi = async (hotspot: Hotspot | null, question?: string) => {
     setAiLoading(true);
-    // Do not clear aiResponse immediately to avoid flickering if we have cached data
-    // setAiResponse(""); 
-    
-    const elementId = spot ? spot.id : "custom_query";
-    const label = spot ? (language === "it" ? spot.nameIt : spot.name) : "Custom";
-    const questionText = overrideQuestion || customQuestion;
-
+    const elementId = hotspot ? hotspot.id : "custom_query";
+    const label = hotspot ? (lang === "it" ? hotspot.nameIt : hotspot.name) : "Custom";
+    const q = question || customQuestion;
     try {
-      const resp = await fetch("/api/analyze", {
+      const res = await fetch("/api/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: apiHeaders(),
         body: JSON.stringify({
           elementId,
           label,
           imageBase64: (documentSource === "custom" || documentSource === "voynich_pdf") ? activeUploadedImage : undefined,
-          customQuestion: questionText,
-          language
-        })
+          customQuestion: q,
+          language: lang,
+        }),
       });
-
-      const data = await resp.json();
+      const data = await res.json();
       if (data.success) {
         setAiResponse(data.text);
-        const key = (documentSource === "custom" || documentSource === "voynich_pdf") ? activeUploadedImage : elementId;
-        setAiCache(prev => ({ ...prev, [key]: data.text }));
+        const cacheKey = (documentSource === "custom" || documentSource === "voynich_pdf") ? activeUploadedImage : elementId;
+        setResponseCache(prev => ({ ...prev, [cacheKey]: data.text }));
       } else {
-        const errorMsg = language === "it" 
+        setAiResponse(lang === "it"
           ? `Errore durante la decifrazione: ${data.error}`
-          : `Decompiling error: ${data.error}`;
-        setAiResponse(errorMsg);
+          : `Decompiling error: ${data.error}`);
       }
-    } catch (err: any) {
-      const errorMsg = language === "it"
-        ? `Impossibile contattare la cabina paleografica: ${err.message}`
-        : `Could not reach decryption core: ${err.message}`;
-      setAiResponse(errorMsg);
+    } catch (e: any) {
+      setAiResponse(lang === "it"
+        ? `Impossibile contattare la cabina paleografica: ${e.message}`
+        : `Could not reach decryption core: ${e.message}`);
     } finally {
       setAiLoading(false);
     }
   };
 
-  // Perform automatic AI decryption attempt using the server-side auto-solver
   const handleAutoDecrypt = async () => {
     setAutoDecryptLoading(true);
     setAutoDecryptResult(null);
-
     try {
-      const resp = await fetch("/api/decrypt-auto", {
+      const res = await fetch("/api/decrypt-auto", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: apiHeaders(),
         body: JSON.stringify({
           textToDecrypt: selectedParagraph.evaTranscription,
           cipherMethod: selectedTheory.nameIt,
           customMapping: letterMapping,
-          language
-        })
+          language: lang,
+        }),
       });
-
-      const data = await resp.json();
+      const data: DecryptionResult & { success: boolean; error?: string } = await res.json();
       if (data.success) {
         setAutoDecryptResult(data);
-        if (data.suggestedMapping) {
-          // Merge or replace mapping
-          setLetterMapping(data.suggestedMapping);
-        }
+        if (data.suggestedMapping) setLetterMapping(data.suggestedMapping);
       } else {
         console.error("Auto decrypt error:", data.error);
       }
-    } catch (err: any) {
-      console.error("Network problem on decryption solver:", err);
+    } catch (e: any) {
+      console.error("Network problem on decryption solver:", e);
     } finally {
       setAutoDecryptLoading(false);
     }
   };
 
-  // Apply custom single key map modification
-  const handleUpdateLetterMapping = (evaChar: string, targetValue: string) => {
-    const updated = { ...letterMapping, [evaChar]: targetValue.toLowerCase().slice(0, 3) };
-    setLetterMapping(updated);
+  const handleMappingChange = (evaChar: string, value: string) => {
+    setLetterMapping(prev => ({ ...prev, [evaChar]: value.toLowerCase().slice(0, 3) }));
   };
 
-  // Resets substitutions to the basic template
   const handleResetMapping = () => {
     if (selectedTheory.exampleSubstitution) {
       setLetterMapping(selectedTheory.exampleSubstitution);
@@ -359,382 +508,321 @@ export default function App() {
     setAutoDecryptResult(null);
   };
 
-  // Decipher function - translates a given prompt by looking up letters inside the substitution map
-  const decipherTextStr = (sourceText: string): string => {
-    return sourceText
-      .split("")
-      .map(char => {
-        const lower = char.toLowerCase();
-        if (lower === "\n") return "\n";
-        if (lower === " ") return "  ";
-        
-        // Find mapped character
-        if (letterMapping[lower] !== undefined && letterMapping[lower] !== "") {
-          return letterMapping[lower];
-        }
-        return `_${char}_`; // Unresolved markers
-      })
-      .join("");
+  const applyMapping = (text: string): string =>
+    text.split("").map(ch => {
+      const lower = ch.toLowerCase();
+      if (lower === "\n") return "\n";
+      if (lower === " ") return "  ";
+      return letterMapping[lower] !== undefined && letterMapping[lower] !== "" ? letterMapping[lower] : `_${ch}_`;
+    }).join("");
+
+  const activeParagraphs: Hotspot[] = scannedParagraphs.length > 0
+    ? scannedParagraphs
+    : documentSource === "voynich_pdf"
+      ? HOTSPOTS.filter(h => h.id.startsWith("paragraph_"))
+      : (selectedParagraph ? [selectedParagraph] : []);
+
+  const pageEvaTranscription = activeParagraphs
+    .map(p => p.evaTranscription || "")
+    .filter(Boolean)
+    .join("\n\n");
+
+  const buildWordList = () => {
+    const list: any[] = [];
+    activeParagraphs.forEach((p) => {
+      if (!p.evaTranscription) return;
+      const words = p.evaTranscription
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "")
+        .split(/[\s\n]+/)
+        .filter(w => w.trim() !== "");
+      words.forEach((word, idx) => {
+        const lower = word.toLowerCase().trim();
+        const wbw = p.wordByWord?.find(w => w.voynichWord.toLowerCase().trim() === lower);
+        const deciphered = applyMapping(word).trim();
+        list.push({
+          id: `${p.id}-${word}-${idx}`,
+          original: word,
+          deciphered,
+          translation: wbw?.translation || null,
+          explanation: wbw?.explanation || null,
+          paragraphName: lang === "it" ? p.nameIt : p.name,
+        });
+      });
+    });
+    return list;
   };
 
-  // Calculate raw text frequencies for the selected text block
-  const calculateLetterFrequencies = (text: string) => {
-    const filtered = text.replace(/[\s\n]/g, "").toLowerCase();
-    const map: Record<string, number> = {};
-    for (const char of filtered) {
-      map[char] = (map[char] || 0) + 1;
-    }
-    
-    return Object.entries(map)
-      .sort((a, b) => b[1] - a[1])
-      .map(([char, count]) => ({
-        char,
-        count,
-        percent: ((count / filtered.length) * 100).toFixed(1)
-      }));
+  const computeCharFreq = (text: string) => {
+    const clean = text.replace(/[\s\n]/g, "").toLowerCase();
+    const freq: Record<string, number> = {};
+    for (const ch of clean) freq[ch] = (freq[ch] || 0) + 1;
+    return Object.entries(freq)
+      .sort(([, a], [, b]) => b - a)
+      .map(([char, count]) => ({ char, count, percent: ((count / clean.length) * 100).toFixed(1) }));
   };
 
-  // Approximation of text Index of Coincidence (measures probability of duplicate letters)
-  const calculateIndexOfCoincidence = (text: string): number => {
-    const filtered = text.replace(/[\s\n]/g, "").toLowerCase();
-    const length = filtered.length;
-    if (length <= 1) return 0;
-    
-    const counts: Record<string, number> = {};
-    for (const char of filtered) {
-      counts[char] = (counts[char] || 0) + 1;
-    }
-    
+  const computeCoincidenceIndex = (text: string): number => {
+    const clean = text.replace(/[\s\n]/g, "").toLowerCase();
+    const n = clean.length;
+    if (n <= 1) return 0;
+    const freq: Record<string, number> = {};
+    for (const ch of clean) freq[ch] = (freq[ch] || 0) + 1;
     let sum = 0;
-    for (const count of Object.values(counts)) {
-      sum += count * (count - 1);
-    }
-    
-    return sum / (length * (length - 1));
+    for (const count of Object.values(freq)) sum += count * (count - 1);
+    return sum / (n * (n - 1));
   };
 
-  const textFrequencies = calculateLetterFrequencies(selectedParagraph.evaTranscription || "");
-  const textIC = calculateIndexOfCoincidence(selectedParagraph.evaTranscription || "");
+  const charFreq = computeCharFreq(pageEvaTranscription);
+  const coincidenceIndex = computeCoincidenceIndex(pageEvaTranscription);
 
+  // ── RENDER ──────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#05070a] text-slate-300 flex flex-col font-sans overflow-x-hidden relative selection:bg-cyan-500/30 selection:text-white">
-      {/* Subtle Grid Overlay */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-0" style={{ backgroundImage: "radial-gradient(#fff 1px, transparent 1px)", backgroundSize: "24px 24px" }}></div>
-      
-      {/* Top Cybernetic Immersive Header */}
-      <header className="h-16 border-b border-white/10 flex items-center justify-between px-6 sm:px-8 bg-[#080b10] relative z-20 shrink-0">
+    <div className="min-h-screen text-slate-300 flex flex-col font-sans overflow-x-hidden relative selection:bg-cyan-500/30 selection:text-white" style={{background: 'linear-gradient(135deg, #020408 0%, #050a14 35%, #060b12 65%, #04080d 100%)', backgroundAttachment: 'fixed'}}>
+      {/* Dot grid background */}
+      <div
+        className="absolute inset-0 pointer-events-none z-0"
+        style={{ backgroundImage: "radial-gradient(rgba(34,211,238,0.04) 1px, transparent 1px)", backgroundSize: "28px 28px" }}
+      />
+      {/* Top gradient accent line */}
+      <div className="absolute top-0 left-0 right-0 h-px pointer-events-none z-20" style={{background: 'linear-gradient(90deg, transparent, rgba(34,211,238,0.4) 30%, rgba(99,102,241,0.5) 70%, transparent)'}} />
+
+      {/* ── Header ──────────────────────────────── */}
+      <header className="h-16 flex items-center justify-between px-5 sm:px-8 relative z-20 shrink-0" style={{background: 'rgba(5,10,18,0.88)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.07)'}}>
+        {/* Logo / Title */}
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-cyan-500/20 border border-cyan-500 flex items-center justify-center rounded-sm shrink-0">
-            <div className="w-4 h-4 border-2 border-cyan-400 rotate-45"></div>
+          <div className="w-9 h-9 flex items-center justify-center rounded-xl shrink-0 relative" style={{background: 'linear-gradient(135deg, rgba(34,211,238,0.15), rgba(99,102,241,0.15))', border: '1px solid rgba(34,211,238,0.25)', boxShadow: '0 0 16px rgba(34,211,238,0.12)'}}>
+            <div className="w-4 h-4 border-2 rounded-sm" style={{borderColor: '#22d3ee', transform: 'rotate(45deg)', boxShadow: '0 0 8px rgba(34,211,238,0.4)'}} />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-sm sm:text-lg font-light tracking-[0.1em] sm:tracking-[0.2em] text-white uppercase font-sans">
-              {language === "it" ? "DECIFRATORE VOYNICH" : "VOYNICH DECIPHERER"}
-              <span className="font-bold opacity-45 uppercase text-[9px] sm:text-[10px] tracking-widest ml-2">v4.0.2</span>
+            <h1 className="text-sm sm:text-base font-bold tracking-[0.12em] uppercase" style={{fontFamily: 'Cinzel, Georgia, serif', background: 'linear-gradient(135deg, #e2e8f0, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'}}>
+              {lang === "it" ? "Decifratore Voynich" : "Voynich Decipherer"}
+              <span style={{fontFamily: 'JetBrains Mono, monospace', fontSize: '9px', letterSpacing: '0.15em', color: 'rgba(34,211,238,0.5)', WebkitTextFillColor: 'rgba(34,211,238,0.5)', marginLeft: '8px'}}>v4.0.2</span>
             </h1>
-            <p className="hidden xs:block text-[9px] sm:text-[10px] font-mono text-cyan-400/80 tracking-normal uppercase">
-              {language === "it" 
-                ? "Processore di Crittanalisi Botanica f34v" 
-                : "Botanical Cryptanalysis Core f34v"}
+            <p className="hidden sm:block" style={{fontFamily: 'JetBrains Mono, monospace', fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(34,211,238,0.6)'}}>
+              {lang === "it" ? "Crittanalisi Botanica · IA" : "Botanical Cryptanalysis · AI"}
             </p>
           </div>
         </div>
 
-        {/* Interactive controllers, indicators and switches */}
-        <div className="flex items-center gap-4 sm:gap-6 text-xs tracking-widest uppercase font-mono">
-          {/* Active status */}
-          <div className="hidden md:flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_8px_#22d3ee]"></span>
-            <span className="text-cyan-400 text-[10px]">Processore Attivo</span>
+        {/* Right controls */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Status pill */}
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full" style={{background: 'rgba(34,211,238,0.06)', border: '1px solid rgba(34,211,238,0.14)'}}>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" style={{boxShadow: '0 0 6px #34d399'}} />
+            <span style={{fontFamily: 'JetBrains Mono, monospace', fontSize: '9px', color: '#34d399', letterSpacing: '0.10em', textTransform: 'uppercase'}}>Online</span>
           </div>
 
-          <div className="hidden sm:block h-4 w-px bg-white/10"></div>
-
-          {/* Language selection pills */}
-          <div className="flex items-center bg-white/5 rounded border border-white/10 p-0.5">
-            <button
-              onClick={() => setLanguage("it")}
-              className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-all cursor-pointer ${
-                language === "it" 
-                  ? "bg-cyan-500 text-black font-semibold shadow-[0_0_8px_#22d3ee]" 
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              IT
+          {/* API Key input */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full w-24 xs:w-32 sm:w-44 md:w-auto" style={{background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)'}}>
+            <Key className="w-3 h-3 text-cyan-400/70 shrink-0" />
+            <input
+              type={showApiKey ? "text" : "password"}
+              value={customApiKey}
+              onChange={e => handleApiKeyChange(e.target.value)}
+              placeholder="API KEY"
+              className="bg-transparent focus:outline-none text-cyan-300 w-full placeholder:text-slate-600"
+              style={{fontFamily: 'JetBrains Mono, monospace', fontSize: '9px', letterSpacing: '0.05em'}}
+            />
+            <button onClick={() => setShowApiKey(v => !v)} className="btn-icon" type="button" style={{width: '22px', height: '22px'}} title={showApiKey ? "Nascondi" : "Mostra"}>
+              {showApiKey ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
             </button>
-            <button
-              onClick={() => setLanguage("en")}
-              className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-all cursor-pointer ${
-                language === "en" 
-                  ? "bg-cyan-500 text-black font-semibold shadow-[0_0_8px_#22d3ee]" 
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              EN
-            </button>
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="btn-icon" style={{width: '22px', height: '22px'}} title="Ottieni API Key">
+              <HelpCircle className="w-3 h-3" />
+            </a>
           </div>
 
-          <div className="h-4 w-px bg-white/10"></div>
+          {/* Language toggle */}
+          <div className="flex items-center rounded-full p-0.5" style={{background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)'}}>
+            {(["it", "en"] as const).map(l => (
+              <button
+                key={l}
+                onClick={() => setLang(l)}
+                className="px-3 py-1 rounded-full cursor-pointer transition-all"
+                style={lang === l ? {background: 'linear-gradient(135deg,#06b6d4,#6366f1)', color: '#fff', fontFamily: 'JetBrains Mono', fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', boxShadow: '0 0 12px rgba(34,211,238,0.25)'} : {color: '#64748b', fontFamily: 'JetBrains Mono', fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em'}}
+              >
+                {l.toUpperCase()}
+              </button>
+            ))}
+          </div>
 
-          <a 
-            href="https://it.wikipedia.org/wiki/Manoscritto_Voynich" 
-            target="_blank" 
-            rel="noreferrer" 
-            className="flex items-center gap-1.5 opacity-60 hover:opacity-100 text-cyan-400 hover:text-cyan-300 transition-all text-[10px] cursor-pointer"
-            title={language === "it" ? "Documentazione Storica" : "Historical Docs"}
+          {/* Wiki link */}
+          <a
+            href="https://it.wikipedia.org/wiki/Manoscritto_Voynich"
+            target="_blank"
+            rel="noreferrer"
+            className="btn-icon hidden sm:inline-flex"
+            title={lang === "it" ? "Documentazione Storica" : "Historical Docs"}
           >
             <BookOpen className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">WIKI</span>
           </a>
         </div>
       </header>
 
-      {/* Main Grid Workspace Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch relative z-10">
-        
-        {/* LEFT COLUMN: Zoomable interactive leaf panel (lg:span-5) */}
+      {/* ── Main Grid ───────────────────────────── */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch relative z-10">
+
+        {/* LEFT COLUMN */}
         <section className="lg:col-span-5 flex flex-col h-full min-h-[500px]" id="manuscript-stage-col">
-          {/* Source Selector Swapper */}
-          <div className="flex bg-[#0b0f19] border border-white/10 rounded-xl p-1 mb-4 items-center justify-between z-10 shrink-0 select-none">
-            <span className="text-[10px] font-mono font-bold text-cyan-400 tracking-wider uppercase ml-2">
-              {language === "it" ? "SORGENTE MANOSCRITTO:" : "MANUSCRIPT SOURCE:"}
-            </span>
-            <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar select-none">
-              <button
-                onClick={() => {
-                  setDocumentSource("default");
-                  // Reset to a valid static paragraph when returning to default view
-                  setSelectedParagraph(FO_F34V_HOTSPOTS.find(h => h.id === "paragraph_top_left") || FO_F34V_HOTSPOTS[4]);
-                  setAiResponse("");
-                }}
-                className={`px-3 py-1.5 rounded-lg text-[9px] font-mono font-bold tracking-wider transition-all cursor-pointer whitespace-nowrap ${
-                  documentSource === "default"
-                    ? "bg-cyan-500 text-black font-semibold shadow-[0_0_8px_rgba(6,182,212,0.4)]"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                {language === "it" ? "TAVOLA f34v" : "FOLIO f34v"}
-              </button>
-
-              <button
-                onClick={() => {
-                  setDocumentSource("voynich_pdf");
-                  setAiResponse("");
-                }}
-                className={`px-3 py-1.5 rounded-lg text-[9px] font-mono font-bold tracking-wider transition-all cursor-pointer whitespace-nowrap ${
-                  documentSource === "voynich_pdf"
-                    ? "bg-cyan-500 text-black font-semibold shadow-[0_0_8px_rgba(6,182,212,0.4)]"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                {language === "it" ? "MANOSCRITTO PDF" : "FULL PDF MS"}
-              </button>
-
-              <button
-                onClick={() => {
-                  setDocumentSource("custom");
-                  setAiResponse("");
-                }}
-                className={`px-3 py-1.5 rounded-lg text-[9px] font-mono font-bold tracking-wider transition-all cursor-pointer whitespace-nowrap ${
-                  documentSource === "custom"
-                    ? "bg-cyan-500 text-black font-semibold shadow-[0_0_8px_rgba(6,182,212,0.4)]"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                {language === "it" ? "CARICA ALTRO" : "UPLOAD OTHER"}
-               </button>
+          {/* Source selector + Zoom button */}
+          <div className="flex items-center gap-2 mb-4 shrink-0">
+            <div className="flex flex-1 items-center gap-1.5 p-1.5 rounded-2xl no-scrollbar" style={{background: 'rgba(8,14,26,0.70)', border: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(12px)'}}>
+              <span className="section-label ml-1 shrink-0">
+                {lang === "it" ? "Sorgente" : "Source"}
+              </span>
+              <div className="flex gap-1 overflow-x-auto no-scrollbar ml-auto">
+                {(["voynich_pdf", "custom"] as const).map(src => (
+                  <button
+                    key={src}
+                    onClick={() => { setDocumentSource(src); setAiResponse(""); }}
+                    className="cursor-pointer whitespace-nowrap rounded-xl transition-all px-3 py-1.5"
+                    style={documentSource === src
+                      ? {background: 'linear-gradient(135deg,#06b6d4,#4f46e5)', color: '#fff', fontFamily: 'JetBrains Mono', fontSize: '9px', fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', boxShadow: '0 0 14px rgba(34,211,238,0.22)'}
+                      : {color: '#64748b', fontFamily: 'JetBrains Mono', fontSize: '9px', fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase'}}
+                  >
+                    {src === "voynich_pdf" ? (lang === "it" ? "PDF Voynich" : "Full PDF MS") : (lang === "it" ? "Carica Altro" : "Upload Other")}
+                  </button>
+                ))}
+              </div>
             </div>
+            {/* Zoom button */}
+            <button
+              onClick={() => { setZoomLevel(100); setZoomOpen(true); }}
+              className="btn-secondary shrink-0 gap-1.5"
+              title={lang === "it" ? "Apri visualizzatore zoom pagina" : "Open zoom viewer"}
+              style={{borderRadius: '14px', padding: '8px 14px'}}
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline" style={{fontFamily: 'JetBrains Mono', fontSize: '9px', letterSpacing: '0.10em', textTransform: 'uppercase', fontWeight: 700}}>Zoom</span>
+            </button>
           </div>
 
-          {documentSource === "default" ? (
-            <ManuscriptMap
-              activeHotspotId={selectedHotspot?.id || null}
-              onSelectHotspot={(spot) => {
-                setSelectedHotspot(spot);
-                // Auto-sync sandbox selected paragraph if selected spot is a paragraph
-                if (spot && spot.id.startsWith("paragraph_")) {
-                  setSelectedParagraph(spot);
-                }
-              }}
-              language={language}
-            />
-          ) : (
-            <DocumentLoader
-              language={language}
-              onAnalyzePage={handleAnalyzeCustomPage}
-              onAnalyzeAll={handleAnalyzeCustomAll}
-              aiLoading={aiLoading}
-              onSelectExternalActiveStatus={setIsCustomActive}
-              onActiveImageChange={(activeImg, allImgs) => {
-                setActiveUploadedImage(activeImg);
-                setAllUploadedImages(allImgs);
-              }}
-              initialUrl={documentSource === "voynich_pdf" ? VOYNICH_PDF_URL : undefined}
-            />
-          )}
+          {/* Document loader */}
+          <DocumentLoader
+            key={documentSource}
+            language={lang}
+            onAnalyzePage={handleAnalyzeCustomPage}
+            onAnalyzeAll={handleAnalyzeCustomAll}
+            aiLoading={aiLoading}
+            onSelectExternalActiveStatus={setIsCustomActive}
+            onActiveImageChange={(img, all) => {
+              setActiveUploadedImage(img);
+              setAllUploadedImages(all);
+            }}
+            initialUrl={documentSource === "voynich_pdf" ? voynichPdfUrl : undefined}
+          />
         </section>
 
-        {/* RIGHT COLUMN: Controls Workbench (lg:span-7) */}
-        <section className="lg:col-span-7 flex flex-col bg-[#080b10]/90 border border-white/10 rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.5)]" id="decryption-workbench-col">
-          
-          {/* Navigation Tabs for Sandbox styled with high-tech look */}
-          <div className="flex bg-[#0b0f19] border-b border-white/10 overflow-x-auto">
-            <button
-              onClick={() => setActiveTab("analyzer")}
-              className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 py-4.5 text-[11px] font-mono tracking-wider font-bold border-b-2 transition-all cursor-pointer ${
-                activeTab === "analyzer"
-                  ? "border-cyan-400 text-cyan-300 bg-white/5 shadow-[inset_0_-10px_20px_rgba(6,182,212,0.05)]"
-                  : "border-transparent text-slate-400 hover:text-white hover:bg-white/2"
-              }`}
-            >
-              <Brain className={`w-4 h-4 ${activeTab === "analyzer" ? "text-cyan-400" : "text-slate-500"}`} />
-              {language === "it" ? "ANALISI BOTANICA (IA)" : "AI BOTANIC ANALYZER"}
-            </button>
-            
-            <button
-              onClick={() => setActiveTab("sandbox")}
-              className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 py-4.5 text-[11px] font-mono tracking-wider font-bold border-b-2 transition-all cursor-pointer ${
-                activeTab === "sandbox"
-                  ? "border-indigo-500 text-indigo-400 bg-white/5 shadow-[inset_0_-10px_20px_rgba(99,102,241,0.05)]"
-                  : "border-transparent text-slate-400 hover:text-white hover:bg-white/2"
-              }`}
-            >
-              <Sliders className={`w-4 h-4 ${activeTab === "sandbox" ? "text-indigo-400" : "text-slate-500"}`} />
-              {language === "it" ? "CRITTANALISI" : "CIPHER SANDBOX"}
-            </button>
-
-            <button
-              onClick={() => setActiveTab("keyboard")}
-              className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 py-4.5 text-[11px] font-mono tracking-wider font-bold border-b-2 transition-all cursor-pointer ${
-                activeTab === "keyboard"
-                  ? "border-cyan-400 text-cyan-300 bg-white/5 shadow-[inset_0_-10px_20px_rgba(6,182,212,0.05)]"
-                  : "border-transparent text-slate-400 hover:text-white hover:bg-white/2"
-              }`}
-            >
-              <Keyboard className={`w-4 h-4 ${activeTab === "keyboard" ? "text-cyan-400" : "text-slate-500"}`} />
-              {language === "it" ? "TASTIERA EVA" : "EVA GLYPH WRITER"}
-            </button>
+        {/* RIGHT COLUMN */}
+        <section className="lg:col-span-7 flex flex-col overflow-hidden" id="decryption-workbench-col" style={{background: 'rgba(6,11,22,0.82)', backdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', boxShadow: '0 8px 48px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05)'}}>
+          {/* Tab bar */}
+          <div className="flex overflow-x-auto no-scrollbar" style={{background: 'rgba(4,8,18,0.60)', borderBottom: '1px solid rgba(255,255,255,0.06)'}}>
+            {([
+              {id: 'analyzer', icon: Brain, labelIt: 'Analisi IA', labelEn: 'AI Analyzer', color: 'cyan'},
+              {id: 'sandbox', icon: Sliders, labelIt: 'Crittanalisi', labelEn: 'Cipher Sandbox', color: 'indigo'},
+              {id: 'keyboard', icon: Keyboard, labelIt: 'Tastiera EVA', labelEn: 'EVA Writer', color: 'cyan'},
+            ] as const).map(tab => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.id as any;
+              const accent = tab.color === 'indigo' ? '#818cf8' : '#22d3ee';
+              const accentBg = tab.color === 'indigo' ? 'rgba(99,102,241,0.08)' : 'rgba(34,211,238,0.06)';
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className="flex-1 min-w-[100px] flex items-center justify-center gap-2 py-4 cursor-pointer transition-all"
+                  style={active
+                    ? {borderBottom: `2px solid ${accent}`, color: accent, background: accentBg, fontFamily: 'JetBrains Mono', fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase'}
+                    : {borderBottom: '2px solid transparent', color: '#475569', fontFamily: 'JetBrains Mono', fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase'}}
+                >
+                  <Icon className="w-4 h-4 shrink-0" style={{color: active ? accent : '#334155'}} />
+                  <span className="hidden sm:inline">{lang === "it" ? tab.labelIt : tab.labelEn}</span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* TAB 1 CONTENT: Paleography Botanical & Text Explorer with Gemini */}
+          {/* ── ANALYZER TAB ──────────────────────── */}
           {activeTab === "analyzer" && (
-            <div className="flex-1 p-6 overflow-y-auto space-y-6 max-h-[72vh] flex flex-col justify-between">
-              
-              <div className="space-y-5">
-                {/* Selected Element Header */}
-                <div className="p-5 bg-white/5 border border-white/10 rounded-xl relative overflow-hidden group shadow-[inset_0_0_30px_rgba(255,255,255,0.02)]">
-                  <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none transform translate-x-2 -translate-y-2 group-hover:scale-110 transition-transform">
+            <div className="flex-1 p-5 overflow-y-auto space-y-5 max-h-[72vh] flex flex-col justify-between">
+              <div className="space-y-4">
+                {/* Selected element card */}
+                <div className="p-5 relative overflow-hidden group" style={{background: 'rgba(10,18,34,0.60)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)'}}>
+                  <div className="absolute top-0 right-0 p-4 opacity-[0.04] pointer-events-none transform translate-x-2 -translate-y-2 group-hover:scale-110 transition-transform">
                     <Compass className="w-24 h-24 text-cyan-400" />
                   </div>
-                  <div className="flex items-center gap-2.5 mb-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_8px_#22d3ee]"></span>
-                    <h3 className="text-[10px] font-mono font-bold uppercase tracking-widest text-cyan-400">
-                      {language === "it" ? "ELEMENTO SELEZIONATO" : "ACTIVE COMPONENT"}
-                    </h3>
+                  <div className="section-label mb-3">
+                    {lang === "it" ? "Elemento Selezionato" : "Active Component"}
                   </div>
-                  
-                  <h2 className="text-lg font-bold text-white mb-2 font-display tracking-tight">
-                    {documentSource === "voynich_pdf" ? (
-                      language === "it" ? "Manoscritto Voynich (PDF Intero)" : "Full Voynich Manuscript (PDF)"
-                    ) : documentSource === "custom" ? (
-                      language === "it" ? "Sorgente Documento Esterno" : "External Document Source"
-                    ) : selectedHotspot ? (
-                      (language === "it" ? selectedHotspot.nameIt : selectedHotspot.name)
-                    ) : (
-                      (language === "it" ? "Clicca sulla Tavola a sinistra" : "Click on the Left Folio Map")
-                    )}
+                  <h2 className="text-base font-bold text-white mb-2" style={{fontFamily: 'Cinzel, Georgia, serif', letterSpacing: '0.04em'}}>
+                    {documentSource === "voynich_pdf"
+                      ? (lang === "it" ? "Manoscritto Voynich (PDF Intero)" : "Full Voynich Manuscript (PDF)")
+                      : documentSource === "custom"
+                        ? (lang === "it" ? "Sorgente Documento Esterno" : "External Document Source")
+                        : selectedHotspot
+                          ? (lang === "it" ? selectedHotspot.nameIt : selectedHotspot.name)
+                          : (lang === "it" ? "Clicca sulla Tavola a sinistra" : "Click on the Left Folio Map")}
                   </h2>
-                  <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                    {(documentSource === "custom" || documentSource === "voynich_pdf") ? (
-                      language === "it"
-                        ? "Richiedi l'analisi euristica e paleografica d'avanguardia su questa pagina. Clicca sui pulsanti della scheda a sinistra per analizzare con Gemini."
-                        : "Query an in-depth scan of this folio. Use the navigation panel on the left to trigger Gemini core validation."
-                    ) : selectedHotspot ? (
-                      (language === "it" ? selectedHotspot.descriptionIt : selectedHotspot.description)
-                    ) : (
-                      (language === "it" ? "Seleziona fusti, fiori o frammenti d'erbario medievale per avviarne l'autopsia linguistica automatizzata." : "Select plant nodes, stems or paragraphs on the image to activate real-time paleographic study.")
-                    )}
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    {(documentSource === "custom" || documentSource === "voynich_pdf")
+                      ? (lang === "it" ? "Richiedi l'analisi euristica e paleografica d'avanguardia su questa pagina. Clicca sui pulsanti della scheda a sinistra per analizzare con Gemini." : "Query an in-depth scan of this folio. Use the navigation panel on the left to trigger Gemini core validation.")
+                      : selectedHotspot
+                        ? (lang === "it" ? selectedHotspot.descriptionIt : selectedHotspot.description)
+                        : (lang === "it" ? "Seleziona fusti, fiori o frammenti d'erbario medievale per avviarne l'autopsia linguistica automatizzata." : "Select plant nodes, stems or paragraphs on the image to activate real-time paleographic study.")}
                   </p>
-
-                  {/* If selecting paragraph and not in custom source mode, show inline EVA preview directly */}
-                  {!(documentSource === "custom" || documentSource === "voynich_pdf") && selectedHotspot && selectedHotspot.evaTranscription && (
-                    <div className="mt-4 p-3.5 bg-black/40 border border-white/5 rounded-lg relative overflow-hidden">
-                      {/* Scanning visual bar overlay */}
-                      <div className="absolute left-0 right-0 h-px bg-cyan-400/20 shadow-[0_0_8px_#22d3ee] pointer-events-none scan-beam"></div>
-                      <span className="text-[9px] font-mono text-cyan-400/80 uppercase font-bold tracking-widest block mb-2">
-                        Trascrizione EVA Originale:
-                      </span>
-                      <div className="font-mono text-xs text-slate-100 whitespace-pre-line leading-relaxed italic">
-                        {selectedHotspot.evaTranscription}
-                      </div>
+                  {!(documentSource === "custom" || documentSource === "voynich_pdf") && selectedHotspot?.evaTranscription && (
+                    <div className="mt-4 p-3.5 relative overflow-hidden rounded-xl" style={{background: 'rgba(2,6,12,0.70)', border: '1px solid rgba(34,211,238,0.10)'}}>
+                      <div className="absolute left-0 right-0 h-px scan-beam" style={{background: 'linear-gradient(90deg, transparent, rgba(34,211,238,0.3), transparent)'}} />
+                      <span className="text-[9px] font-mono text-cyan-400/70 uppercase font-bold tracking-widest block mb-2">Trascrizione EVA Originale:</span>
+                      <div className="font-mono text-xs text-slate-200 whitespace-pre-line leading-relaxed italic">{selectedHotspot.evaTranscription}</div>
                     </div>
                   )}
                 </div>
 
-                {/* Gemini Interactive Call Actions (Only for default mode) */}
+                {/* Analyze button */}
                 {!(documentSource === "custom" || documentSource === "voynich_pdf") && (
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     <button
                       onClick={() => handleConsultAi(selectedHotspot)}
                       disabled={aiLoading}
-                      className="w-full py-4 bg-cyan-500 text-black hover:bg-cyan-400 disabled:bg-white/5 disabled:text-slate-500 font-bold uppercase tracking-widest text-xs rounded transition-all shadow-[0_0_20px_rgba(6,182,212,0.25)] hover:shadow-[0_0_25px_rgba(6,182,212,0.4)] disabled:shadow-none disabled:cursor-not-allowed flex items-center justify-center gap-2.5 cursor-pointer"
+                      className="btn-primary w-full py-3.5"
                     >
                       {aiLoading ? (
                         <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-black border-t-transparent"></div>
-                          <span className="font-mono text-[11px] tracking-widest">
-                            {language === "it" ? "ELABORAZIONE MATRICE AI..." : "DECRYPTING VIA AI CORE..."}
-                          </span>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
+                          <span>{lang === "it" ? "Elaborazione AI in corso..." : "Decrypting via AI Core..."}</span>
                         </>
                       ) : (
                         <>
                           <Sparkles className="w-4 h-4" />
-                          <span className="font-mono text-[11px] tracking-widest">
-                            {language === "it" 
-                              ? `AVVIA ANALISI IA REGIONE` 
-                              : `QUERY REGION INTEGRITY`
-                            }
-                          </span>
+                          <span>{lang === "it" ? "Avvia Analisi IA Regione" : "Query Region Integrity"}</span>
                         </>
                       )}
                     </button>
-
-                    <p className="text-[9px] text-slate-400 text-center uppercase tracking-wider font-mono">
-                      {language === "it" 
-                        ? "⚡ Analisi euristica avanzata dei legami storici, d'erbario medievale e morfologici." 
-                        : "⚡ Advanced heuristic match of medieval herbarium indices, codicology & patterns."}
+                    <p className="text-[9px] text-slate-500 text-center uppercase tracking-wider" style={{fontFamily: 'JetBrains Mono'}}>
+                      {lang === "it" ? "⚡ Analisi euristica avanzata · Erbario medievale · Morfologia" : "⚡ Advanced heuristic · Medieval herbarium · Morphology"}
                     </p>
                   </div>
                 )}
 
-                {/* AI response box */}
+                {/* AI response */}
                 {(aiResponse || aiLoading) && (
-                  <div className="p-5 bg-black/40 border border-cyan-500/30 rounded-xl relative shadow-[inset_0_0_30px_rgba(34,211,238,0.03)] overflow-hidden">
-                    <div className="absolute left-0 right-0 h-px bg-cyan-400/20 shadow-[0_0_10px_#22d3ee] pointer-events-none scan-beam"></div>
-                    <div className="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
-                        <span className="text-[10px] font-mono font-bold text-cyan-404 uppercase tracking-widest">
-                          {language === "it" ? "PALEOGRAFO IA RISPONDE:" : "DECODED CLEAR ANSWER:"}
-                        </span>
+                  <div className="p-4 relative overflow-hidden rounded-2xl" style={{background: 'rgba(2,8,20,0.70)', border: '1px solid rgba(34,211,238,0.18)', boxShadow: 'inset 0 0 30px rgba(34,211,238,0.02)'}}>
+                    <div className="absolute left-0 right-0 h-px scan-beam" style={{background: 'linear-gradient(90deg, transparent, rgba(34,211,238,0.25), transparent)'}} />
+                    <div className="flex items-center justify-between mb-3 pb-2" style={{borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
+                      <div className="section-label">
+                        {lang === "it" ? "Risposta Paleografo IA" : "Decoded AI Answer"}
                       </div>
-                      <button 
-                        onClick={() => setAiResponse("")}
-                        className="text-[9px] font-mono hover:text-cyan-400 text-slate-500 transition-colors uppercase tracking-widest cursor-pointer"
-                      >
-                        {language === "it" ? "CANCELLA" : "CLEAR"}
+                      <button onClick={() => setAiResponse("")} className="btn-danger" style={{padding: '4px 12px'}}>
+                        <X className="w-3 h-3" />
+                        {lang === "it" ? "Cancella" : "Clear"}
                       </button>
                     </div>
-
-                    {/* Streamer typing behavior or simple rich body response */}
                     {aiLoading ? (
-                      <div className="py-4 flex flex-col gap-2">
-                        <div className="h-3 w-4/5 bg-white/5 rounded animate-pulse"></div>
-                        <div className="h-3 w-11/12 bg-white/5 rounded animate-pulse"></div>
-                        <div className="h-3 w-2/3 bg-white/5 rounded animate-pulse"></div>
+                      <div className="py-4 flex flex-col gap-2.5">
+                        {[4, 5, 3].map((w, i) => <div key={i} className="h-3 bg-white/5 rounded-full animate-pulse" style={{width: `${w * 20}%`, animationDelay: `${i * 0.15}s`}} />)}
                       </div>
                     ) : (
-                      <div className="text-xs sm:text-sm text-slate-100 leading-relaxed max-h-[300px] overflow-y-auto pr-1 whitespace-pre-line font-serif space-y-2 select-text">
+                      <div className="text-xs sm:text-sm text-slate-200 leading-relaxed max-h-[300px] overflow-y-auto pr-1 whitespace-pre-line space-y-2 select-text" style={{fontFamily: 'Georgia, serif'}}>
                         {aiResponse}
                       </div>
                     )}
@@ -742,207 +830,245 @@ export default function App() {
                 )}
               </div>
 
-              {/* Bottom Custom Prompt Form */}
-              <div className="border-t border-white/10 pt-4 mt-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-1 h-3 bg-indigo-500 rounded-sm"></span>
-                  <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
-                    {language === "it" ? "Parámetri di input personalizzati su f34v:" : "Custom heuristic parameters query:"}
-                  </label>
+              {/* Custom query form */}
+              <div className="pt-4 mt-4" style={{borderTop: '1px solid rgba(255,255,255,0.07)'}}>
+                <div className="section-label mb-3">
+                  {lang === "it" ? "Domanda Personalizzata" : "Custom Query"}
                 </div>
-                
-                <form 
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (!customQuestion.trim()) return;
-                    handleConsultAi(null, customQuestion);
-                  }}
+                <form
+                  onSubmit={e => { e.preventDefault(); if (customQuestion.trim()) handleConsultAi(null, customQuestion); }}
                   className="flex gap-2"
                 >
                   <input
                     type="text"
                     value={customQuestion}
-                    onChange={(e) => setCustomQuestion(e.target.value)}
-                    placeholder={language === "it" ? "es. Quali teorie associano questo foglio alla Satureja?" : "e.g., Does this leaf match Ruta graveolens?"}
-                    className="flex-1 bg-black/40 rounded px-4 py-3 text-xs border border-white/10 text-white placeholder:text-slate-600 focus:border-cyan-500/50 focus:outline-none transition-colors font-mono"
+                    onChange={e => setCustomQuestion(e.target.value)}
+                    placeholder={lang === "it" ? "es. Quali teorie associano questo foglio alla Satureja?" : "e.g., Does this leaf match Ruta graveolens?"}
+                    className="flex-1 rounded-xl px-4 py-3 text-xs text-white placeholder:text-slate-600 focus:outline-none transition-all"
+                    style={{background: 'rgba(4,8,18,0.70)', border: '1px solid rgba(255,255,255,0.09)', fontFamily: 'JetBrains Mono', caretColor: '#22d3ee'}}
+                    onFocus={e => { e.target.style.borderColor = 'rgba(34,211,238,0.35)'; e.target.style.boxShadow = '0 0 0 3px rgba(34,211,238,0.06)'; }}
+                    onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.09)'; e.target.style.boxShadow = 'none'; }}
                   />
-                  <button
-                    type="submit"
-                    disabled={aiLoading || !customQuestion.trim()}
-                    className="bg-indigo-500 hover:bg-indigo-400 text-white disabled:bg-white/5 disabled:text-slate-500 px-5 py-2.5 rounded text-[10px] font-mono font-extrabold tracking-widest uppercase transition-all shadow-[0_0_15px_rgba(99,102,241,0.2)] disabled:shadow-none cursor-pointer duration-200 shrink-0"
-                  >
-                    {language === "it" ? "INVIA" : "SEND"}
+                  <button type="submit" disabled={aiLoading || !customQuestion.trim()} className="btn-indigo shrink-0">
+                    {lang === "it" ? "Invia" : "Send"}
                   </button>
                 </form>
               </div>
-
             </div>
           )}
 
-          {/* TAB 2 CONTENT: Cryptanalysis and Active Substitution Sandbox */}
+          {/* ── SANDBOX TAB ───────────────────────── */}
           {activeTab === "sandbox" && (
-            <div className="flex-1 overflow-y-auto p-6 max-h-[72vh] flex flex-col justify-between space-y-6">
-              
-              <div className="space-y-6">
+            <div className="flex-1 overflow-y-auto p-5 max-h-[72vh] flex flex-col space-y-5">
+              <div className="space-y-5">
                 
-                {/* 1. Selector of Target Pars */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-mono text-cyan-400 uppercase font-bold block mb-1.5 tracking-wider">
-                      {language === "it" ? "Seleziona Blocco di Testo:" : "Select Written Block:"}
-                    </label>
-                    <div className="relative">
-                      {(documentSource === "custom" || documentSource === "voynich_pdf") ? (
-                        <div className="w-full bg-cyan-900/20 border border-cyan-500/30 text-xs font-mono font-bold text-cyan-100 rounded px-3 py-2.5">
-                          {language === "it" ? "SCANSIONE PAGINA ATTIVA" : "ACTIVE PAGE SCAN"}
-                        </div>
-                      ) : (
-                        <select
-                          value={selectedParagraph.id}
-                          onChange={(e) => {
-                            const spot = FO_F34V_HOTSPOTS.find(h => h.id === e.target.value);
-                            if (spot) setSelectedParagraph(spot);
-                          }}
-                          className="w-full bg-black/40 border border-white/10 text-xs font-mono font-bold text-slate-100 rounded px-3 py-2.5 focus:outline-none focus:border-cyan-500 cursor-pointer appearance-none"
-                        >
-                          {FO_F34V_HOTSPOTS.filter(h => h.id.startsWith("paragraph_")).map(p => (
-                            <option key={p.id} value={p.id} className="bg-[#080b10] text-slate-300">
-                              {language === "it" ? p.nameIt : p.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
+                {/* 1. Dottrina di Interpretazione */}
+                <div>
+                  <div className="section-label mb-2">
+                    {lang === "it" ? "Dottrina di Interpretazione" : "Applied Cipher Theory"}
                   </div>
-
-                  {/* Selecting Interpretation Theories */}
-                  <div>
-                    <label className="text-[10px] font-mono text-cyan-400 uppercase font-bold block mb-1.5 tracking-wider">
-                      {language === "it" ? "Dottrina di Interpretazione:" : "Applied Cipher theory:"}
-                    </label>
+                  <div className="relative">
                     <select
                       value={selectedTheory.id}
-                      onChange={(e) => {
-                        const th = DECRYPTION_THEORIES.find(t => t.id === e.target.value);
-                        if (th) setSelectedTheory(th);
+                      onChange={e => {
+                        const found = DECRYPTION_THEORIES.find(t => t.id === e.target.value);
+                        if (found) setSelectedTheory(found);
                       }}
-                      className="w-full bg-black/40 border border-white/10 text-xs font-mono font-bold text-slate-100 rounded px-3 py-2.5 focus:outline-none focus:border-cyan-500 cursor-pointer appearance-none"
+                      className="w-full cursor-pointer appearance-none focus:outline-none transition-all"
+                      style={{background: 'rgba(4,8,18,0.80)', border: '1px solid rgba(34,211,238,0.18)', borderRadius: '14px', padding: '11px 16px', fontFamily: 'JetBrains Mono', fontSize: '12px', fontWeight: 700, color: '#e2e8f0', boxShadow: '0 0 0 0 transparent'}}
                     >
                       {DECRYPTION_THEORIES.map(t => (
-                        <option key={t.id} value={t.id} className="bg-[#080b10] text-slate-300">
-                          {language === "it" ? t.nameIt : t.name}
+                        <option key={t.id} value={t.id} style={{background: '#080b10', color: '#cbd5e1'}}>
+                          {lang === "it" ? t.nameIt : t.name}
                         </option>
                       ))}
                     </select>
                   </div>
                 </div>
 
-                {/* Theoretical Information Banner */}
-                <div className="p-4 bg-white/5 border border-white/10 border-l-2 border-l-indigo-500 rounded-lg flex items-start gap-3">
+                {/* 2. TEORIA SELEZIONATA */}
+                <div className="p-4 flex items-start gap-3 relative overflow-hidden" style={{background: 'rgba(10,18,40,0.60)', border: '1px solid rgba(99,102,241,0.18)', borderLeft: '3px solid #6366f1', borderRadius: '14px', boxShadow: 'inset 0 0 20px rgba(99,102,241,0.03)'}}>
                   <Info className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-[10px] font-mono font-bold tracking-widest text-indigo-400 block uppercase">
-                      {language === "it" ? `TEORIA SELEZIONATA: ${selectedTheory.proponent}` : `PROPOSED BY: ${selectedTheory.proponent}`}
-                    </span>
-                    <p className="text-xs text-slate-300 leading-relaxed italic mt-1 font-sans">
-                      {language === "it" ? selectedTheory.descriptionIt : selectedTheory.description}
+                  <div className="space-y-1.5">
+                    <div className="badge badge-indigo">{lang === "it" ? "Teoria Selezionata" : "Selected Theory"}</div>
+                    <p className="text-[11px] font-semibold" style={{color: '#a5b4fc'}}>{selectedTheory.proponent}</p>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      {lang === "it" ? selectedTheory.descriptionIt : selectedTheory.description}
                     </p>
-                    <div className="mt-2 text-xs text-slate-300 font-mono">
-                      <strong className="text-white">{language === "it" ? "Concetto: " : "Core concept: "}</strong>
-                      {language === "it" ? selectedTheory.conceptIt : selectedTheory.concept}
-                    </div>
+                    <p className="text-[10px] text-slate-500 leading-relaxed" style={{fontFamily: 'JetBrains Mono'}}>
+                      <span className="text-slate-300 font-semibold">{lang === "it" ? "Concetto: " : "Concept: "}</span>
+                      {lang === "it" ? selectedTheory.conceptIt : selectedTheory.concept}
+                    </p>
                   </div>
                 </div>
 
-                {/* 2. Side-by-Side: Original Voynich Fonts & Custom substitution result */}
-                <div className="border border-white/10 rounded-xl overflow-hidden bg-[#0c121d] relative shadow-[inset_0_0_30px_rgba(34,211,238,0.03)]">
-                  {/* Cyber scanning visual bar overlay */}
-                  <div className="absolute left-0 right-0 h-px bg-cyan-400/20 shadow-[0_0_8px_#22d3ee] pointer-events-none scan-beam"></div>
+                {/* 3. Lettere Voynich (EVA Render) */}
+                <div className="p-4 space-y-3 rounded-2xl" style={{background: 'rgba(8,14,28,0.55)', border: '1px solid rgba(255,255,255,0.07)'}}>
+                  <div className="section-label">
+                    {lang === "it" ? "Lettere Voynich (EVA Render)" : "Voynich Glyph String (EVA)"}
+                  </div>
+                  <div className="p-3.5 rounded-xl max-h-[160px] overflow-y-auto pr-1" style={{background: 'rgba(2,5,12,0.70)', border: '1px solid rgba(255,255,255,0.05)'}}>
+                    {pageEvaTranscription ? (
+                      <VoynichText text={pageEvaTranscription} size={16} />
+                    ) : (
+                      <span className="text-xs italic text-slate-600" style={{fontFamily: 'JetBrains Mono'}}>
+                        {lang === "it" ? "Trascrizione vuota. Esegui la scansione per caricare i dati." : "Transcription empty. Scan page to view glyph render."}
+                      </span>
+                    )}
+                  </div>
+                </div>
 
-                  <div className="px-4 py-3.5 bg-black/40 border-b border-white/10 flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold tracking-widest text-slate-300 uppercase">
-                      {language === "it" ? "DECIFRAZIONE IN TEMPO REALE" : "LIVE DECRYPTED OUTPUT"}
-                    </span>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleResetMapping}
-                        className="text-[9px] font-mono font-bold text-cyan-400 border border-cyan-400/20 px-2.5 py-1 rounded hover:bg-cyan-400/10 cursor-pointer transition-colors uppercase tracking-widest"
-                      >
-                        {language === "it" ? "RIPRISTINA CHIAVE" : "RESET KEY"}
-                      </button>
+                {/* 4. Decodificato (Theory name) */}
+                <div className="relative overflow-hidden rounded-2xl" style={{background: 'rgba(4,10,22,0.80)', border: '1px solid rgba(34,211,238,0.14)', boxShadow: 'inset 0 0 30px rgba(34,211,238,0.02)'}}>
+                  <div className="absolute left-0 right-0 h-px scan-beam" style={{background: 'linear-gradient(90deg,transparent,rgba(34,211,238,0.25),transparent)'}} />
+                  <div className="px-4 py-3 flex items-center justify-between" style={{borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(2,6,14,0.50)'}}>
+                    <div className="section-label" style={{color: '#818cf8'}}>
+                      {lang === "it" ? `Decodificato · ${selectedTheory.nameIt}` : `Decoded · ${selectedTheory.name}`}
+                    </div>
+                    <button onClick={handleResetMapping} className="btn-secondary" style={{padding: '5px 12px', fontSize: '9px'}}>
+                      <RotateCcw className="w-3 h-3" />
+                      {lang === "it" ? "Ripristina" : "Reset Key"}
+                    </button>
+                  </div>
+                  <div className="p-4 max-h-[160px] overflow-y-auto pr-1">
+                    {pageEvaTranscription ? (
+                      <pre className="text-xs whitespace-pre-line leading-relaxed italic select-all" style={{fontFamily: 'JetBrains Mono', color: '#34d399'}}>
+                        {applyMapping(pageEvaTranscription)}
+                      </pre>
+                    ) : (
+                      <span className="text-xs italic text-slate-600" style={{fontFamily: 'JetBrains Mono'}}>
+                        {lang === "it" ? "Testo decodificato non disponibile. Avvia scansione." : "Decoded text not available. Query active scan."}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* 5. TRADUZIONE IPOTETICA DELLA PAGINA */}
+                <div className="relative overflow-hidden rounded-2xl p-5 space-y-4" style={{background: 'rgba(4,10,24,0.65)', border: '1px solid rgba(34,211,238,0.12)', boxShadow: 'inset 0 0 30px rgba(34,211,238,0.02)'}}>
+                  <div className="absolute top-0 right-0 p-4 opacity-[0.04] pointer-events-none">
+                    <Languages className="w-16 h-16 text-cyan-400" />
+                  </div>
+                  <div className="flex items-center gap-2.5 pb-3" style={{borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
+                    <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" style={{boxShadow: '0 0 8px #22d3ee'}} />
+                    <div className="section-label">
+                      {lang === "it" ? "Traduzione Ipotetica della Pagina" : "Hypothetical Page Translation"}
                     </div>
                   </div>
-
-                  <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch divide-y md:divide-y-0 md:divide-x divide-white/5">
-                    
-                    {/* Character inline vector display */}
-                    <div className="pb-4 md:pb-0 md:pr-4 flex flex-col justify-between space-y-3">
-                      <span className="text-[9px] font-mono text-cyan-400/80 uppercase tracking-widest block font-bold">
-                        {language === "it" ? "Lettere Voynich (EVA Render)" : "Voynich Glyph String (EVA)"}
+                  {activeParagraphs.length === 0 || !pageEvaTranscription ? (
+                    <div className="text-center py-6 rounded-xl" style={{border: '1px dashed rgba(255,255,255,0.08)'}}>
+                      <span className="text-xs italic text-slate-600" style={{fontFamily: 'JetBrains Mono'}}>
+                        {lang === "it" ? "Nessun paragrafo tradotto disponibile. Avvia scansione." : "No translated paragraphs available. Launch scan."}
                       </span>
-                      <div className="p-3.5 bg-black/40 border border-white/5 rounded font-serif">
-                        <VoynichText text={selectedParagraph.evaTranscription || ""} size={16} />
-                      </div>
                     </div>
-
-                    {/* Mapped Characters output */}
-                    <div className="pt-4 md:pt-0 md:pl-4 flex flex-col justify-between space-y-3">
-                      <span className="text-[9px] font-mono text-indigo-400/80 uppercase tracking-widest block font-bold">
-                        {language === "it" ? `Decodificato (${selectedTheory.nameIt})` : `Decoded output (${selectedTheory.name})`}
-                      </span>
-                      <div className="p-3.5 bg-black/60 border border-white/5 rounded">
-                        <pre className="font-mono text-emerald-400 text-xs whitespace-pre-line leading-relaxed italic select-all">
-                          {decipherTextStr(selectedParagraph.evaTranscription || "")}
-                        </pre>
-                      </div>
-                    </div>
-
-                  </div>
-
-                  {/* Highlighted paragraph translation */}
-                  {(selectedParagraph.translationIt || selectedParagraph.translationEn) && (
-                    <div className="px-5 pb-5 pt-4 border-t border-white/5 bg-cyan-950/20">
-                      <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-widest block mb-2">
-                        {language === "it" ? "🔮 TRADUZIONE IPOTETICA DEL PARAGRAFO" : "🔮 HYPOTHETICAL PARAGRAPH TRANSLATION"}
-                      </span>
-                      <p className="text-xs text-slate-250 leading-relaxed font-serif italic bg-black/40 border border-white/5 rounded-lg p-3.5 shadow-inner">
-                        "{language === "it" ? selectedParagraph.translationIt : selectedParagraph.translationEn}"
-                      </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {activeParagraphs.map((p, idx) => {
+                        const name = lang === "it" ? p.nameIt : p.name;
+                        const translation = lang === "it" ? (p.translationIt || p.translationEn) : (p.translationEn || p.translationIt);
+                        const label = lang === "it" ? `${idx + 1}° Paragrafo` : `Paragraph #${idx + 1}`;
+                        return (
+                          <div key={p.id} className="p-4 rounded-xl space-y-2 transition-all" style={{background: 'rgba(4,8,18,0.60)', border: '1px solid rgba(255,255,255,0.06)'}}>
+                            <div className="flex flex-wrap items-center gap-2 pb-1.5" style={{borderBottom: '1px solid rgba(255,255,255,0.04)'}}>
+                              <span className="badge badge-cyan">{label}</span>
+                              <span className="text-xs font-semibold text-slate-300">{name}</span>
+                            </div>
+                            <div className="pl-3" style={{borderLeft: '2px solid rgba(34,211,238,0.25)'}}>
+                              <p className="text-xs sm:text-sm text-slate-200 leading-relaxed italic select-text" style={{fontFamily: 'Georgia, serif'}}>
+                                &ldquo;{translation || (lang === "it" ? "Traduzione non disponibile." : "Translation not available.")}&rdquo;
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
-
                 </div>
 
-                {/* 3. Substitution Key Customizer */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-wider">
-                      {language === "it" ? "MATRICE DI SOSTITUZIONE MANUALE:" : "MANUAL SUBSTITUTION MATRIX:"}
-                    </span>
-                    <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">
-                      Voynich &rarr; Sostituto
-                    </span>
+                {/* 6. GLOSSARIO PAROLA PER PAROLA (TRADUZIONE DETTAGLIATA) */}
+                <div className="relative overflow-hidden rounded-2xl p-5 space-y-4" style={{background: 'rgba(8,12,30,0.65)', border: '1px solid rgba(99,102,241,0.14)', boxShadow: 'inset 0 0 30px rgba(99,102,241,0.02)'}}>
+                  <div className="absolute top-0 right-0 p-4 opacity-[0.04] pointer-events-none">
+                    <FileText className="w-16 h-16 text-indigo-400" />
                   </div>
-                  
-                  {/* Mapping input nodes grid layout */}
-                  <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
-                    {EVA_ALPHABET.map((letter) => {
-                      const activeMappedVal = letterMapping[letter.eva] || "";
-                      return (
-                        <div key={letter.eva} className="flex flex-col bg-white/5 border border-white/10 rounded p-2 items-center justify-center gap-1.5 hover:border-cyan-500/50 transition-colors">
-                          <div className="flex items-center gap-1 select-none">
-                            <span className="text-xs font-serif text-cyan-400 font-bold">{letter.eva}</span>
-                            <span className="text-[9px] text-slate-500 font-mono">
-                              ({letter.eva})
+                  <div className="flex items-center gap-2.5 pb-3" style={{borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
+                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" style={{boxShadow: '0 0 8px #6366f1'}} />
+                    <div className="section-label" style={{color: '#818cf8'}}>
+                      {lang === "it" ? "Glossario Parola per Parola" : "Word-by-Word Glossary"}
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    {lang === "it"
+                      ? "Analisi dettagliata e riscontro semantico di ogni parola presente nel testo della pagina."
+                      : "Detailed word-level mapping of each token in the page script."}
+                  </p>
+                  {buildWordList().length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[320px] overflow-y-auto pr-1">
+                      {buildWordList().map((word, idx) => (
+                        <div key={word.id} className="p-3 flex flex-col gap-2 relative overflow-hidden transition-all rounded-xl" style={{background: 'rgba(4,8,20,0.60)', border: '1px solid rgba(255,255,255,0.06)'}} onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(99,102,241,0.28)'; }} onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)'; }}>
+                          <div className="absolute top-2 right-2 badge badge-indigo">#{idx + 1}</div>
+                          <div className="flex items-center gap-2.5">
+                            <div className="px-2 py-1 rounded-lg shrink-0 flex items-center justify-center" style={{background: 'rgba(0,0,0,0.40)', border: '1px solid rgba(255,255,255,0.06)'}}>
+                              <VoynichText text={word.original} size={16} />
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-[8px] font-bold uppercase tracking-widest block leading-none mb-1 truncate max-w-[120px]" style={{fontFamily: 'JetBrains Mono', color: '#475569'}}>
+                                {word.paragraphName}
+                              </span>
+                              <span className="text-xs font-bold text-slate-300 truncate" style={{fontFamily: 'JetBrains Mono'}}>{word.original}</span>
+                            </div>
+                          </div>
+                          <div className="h-px" style={{background: 'rgba(255,255,255,0.05)'}} />
+                          <div className="space-y-1">
+                            <span className="text-[8px] font-bold uppercase tracking-widest block leading-none" style={{fontFamily: 'JetBrains Mono', color: '#818cf8'}}>
+                              {lang === "it" ? "Traduzione" : "Translation"}
                             </span>
+                            {word.translation
+                              ? <span className="text-xs font-bold italic" style={{fontFamily: 'Georgia, serif', color: '#34d399'}}>&ldquo;{word.translation}&rdquo;</span>
+                              : <span className="text-xs italic" style={{fontFamily: 'JetBrains Mono', color: '#475569'}}>{word.deciphered ? `"${word.deciphered}" (Caratteri)` : "-"}</span>
+                            }
+                          </div>
+                          {(word.explanation || word.translation) && (
+                            <p className="text-[10px] text-slate-500 leading-relaxed italic pt-1.5 mt-0.5" style={{borderTop: '1px solid rgba(255,255,255,0.05)'}}>
+                              {word.explanation || (lang === "it" ? "Abbinamento basato sulla tabella di sostituzione." : "Substitution-based character lookup.")}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 rounded-xl" style={{border: '1px dashed rgba(255,255,255,0.07)'}}>
+                      <span className="text-xs italic text-slate-600" style={{fontFamily: 'JetBrains Mono'}}>
+                        {lang === "it" ? "Trascrizione vuota. Nessun termine rilevato." : "Transcription empty. No words detected."}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* 7. MATRICE DI SOSTITUZIONE MANUALE */}
+                <div className="space-y-3 p-5 rounded-2xl" style={{background: 'rgba(6,10,24,0.60)', border: '1px solid rgba(255,255,255,0.07)'}}>
+                  <div className="flex items-center justify-between">
+                    <div className="section-label">
+                      {lang === "it" ? "Matrice di Sostituzione Manuale" : "Manual Substitution Matrix"}
+                    </div>
+                    <span className="text-[9px] uppercase tracking-widest" style={{fontFamily: 'JetBrains Mono', color: '#334155'}}>EVA → Sostituto</span>
+                  </div>
+                  <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                    {EVA_ALPHABET.map(letter => {
+                      const val = letterMapping[letter.eva] || "";
+                      return (
+                        <div key={letter.eva} className="flex flex-col rounded-xl p-2 items-center justify-center gap-1.5 transition-all" style={{background: 'rgba(4,8,18,0.60)', border: '1px solid rgba(255,255,255,0.07)'}} onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(34,211,238,0.30)'; }} onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.07)'; }}>
+                          <div className="flex items-center gap-1 select-none">
+                            <span className="text-xs font-bold" style={{fontFamily: 'JetBrains Mono', color: '#22d3ee'}}>{letter.eva}</span>
                           </div>
                           <input
                             type="text"
                             maxLength={3}
-                            value={activeMappedVal}
-                            placeholder="-"
-                            onChange={(e) => handleUpdateLetterMapping(letter.eva, e.target.value)}
-                            className="w-8 select-all bg-black/40 border border-white/10 text-center text-xs font-mono font-bold text-emerald-400 focus:outline-none focus:border-cyan-500 rounded p-1"
+                            value={val}
+                            placeholder="·"
+                            onChange={e => handleMappingChange(letter.eva, e.target.value)}
+                            className="select-all text-center text-xs font-bold focus:outline-none rounded-lg p-1"
+                            style={{width: '36px', background: 'rgba(2,5,12,0.70)', border: '1px solid rgba(255,255,255,0.08)', fontFamily: 'JetBrains Mono', color: '#34d399', caretColor: '#22d3ee'}}
+                            onFocus={e => { e.target.style.borderColor = 'rgba(34,211,238,0.40)'; }}
+                            onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; }}
                           />
                         </div>
                       );
@@ -950,262 +1076,263 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Auto analysis statistics block */}
+                {/* 8 & 9. Stats panels */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Letter Frequency chart snippet */}
-                  <div className="p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col justify-between">
-                    <div>
-                      <span className="text-[10px] font-mono text-slate-400 block uppercase font-bold mb-3 tracking-wider">
-                        {language === "it" ? "FREQUENZA CARATTERI TOP" : "TOP CHARACTER FREQUENCIES"}
-                      </span>
+                  {/* 8. FREQUENZA CARATTERI TOP */}
+                  <div className="p-4 flex flex-col justify-between rounded-2xl" style={{background: 'rgba(4,10,24,0.65)', border: '1px solid rgba(255,255,255,0.07)'}}>
+                    <div className="section-label mb-3">
+                      {lang === "it" ? "Frequenza Caratteri Top" : "Top Char Frequencies"}
+                    </div>
+                    {charFreq.length > 0 ? (
                       <div className="space-y-2.5">
-                        {textFrequencies.slice(0, 4).map((f) => (
+                        {charFreq.slice(0, 4).map(f => (
                           <div key={f.char} className="flex items-center text-xs gap-3">
-                            <span className="w-4 font-mono font-bold text-cyan-400">{f.char}</span>
-                            <div className="flex-1 bg-white/10 h-1.5 rounded-full overflow-hidden">
-                              <div className="bg-cyan-500 h-full shadow-[0_0_8px_#06b6d4]" style={{ width: `${Math.min(100, parseFloat(f.percent) * 3)}%` }}></div>
+                            <span className="w-4 font-bold" style={{fontFamily: 'JetBrains Mono', color: '#22d3ee'}}>{f.char}</span>
+                            <div className="flex-1 rounded-full overflow-hidden" style={{background: 'rgba(255,255,255,0.06)', height: '6px'}}>
+                              <div className="h-full rounded-full" style={{width: `${Math.min(100, parseFloat(f.percent) * 3)}%`, background: 'linear-gradient(90deg, #22d3ee, #6366f1)', boxShadow: '0 0 6px rgba(34,211,238,0.4)'}} />
                             </div>
-                            <span className="font-mono text-[10px] text-slate-400 w-10 text-right">{f.percent}%</span>
+                            <span className="w-10 text-right" style={{fontFamily: 'JetBrains Mono', fontSize: '10px', color: '#64748b'}}>{f.percent}%</span>
                           </div>
                         ))}
                       </div>
-                    </div>
+                    ) : (
+                      <span className="text-xs italic text-slate-600" style={{fontFamily: 'JetBrains Mono'}}>
+                        {lang === "it" ? "Nessun dato." : "No data."}
+                      </span>
+                    )}
                   </div>
 
-                  {/* Math calculations metrics */}
-                  <div className="p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col justify-between">
-                    <div>
-                      <span className="text-[10px] font-mono text-slate-400 block uppercase font-bold mb-3 tracking-wider">
-                        {language === "it" ? "INDICE DI COINCIDENZA" : "INDEX OF COINCIDENCE"}
-                      </span>
-                      <div className="space-y-3">
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-lg font-bold font-mono text-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.2)]">
-                            {textIC.toFixed(4)}
-                          </span>
-                          <span className="text-[9px] font-mono text-slate-500">
-                            (f34v: {selectedParagraph.id.split("_").pop()})
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-slate-400 leading-normal font-sans">
-                          {language === "it"
-                            ? "I testi normali variano tra 0.065 e 0.080. L'entropia Voynich insolitamente bassa indica un sistema di abbreviazioni fitte o un falso artificiale."
-                            : "Standard text ranges from 0.065 to 0.080. Voynich's lower index suggests extreme abbreviation rules or generative artificial patterns."}
-                        </p>
+                  {/* 9. INDICE DI COINCIDENZA */}
+                  <div className="p-4 flex flex-col justify-between rounded-2xl" style={{background: 'rgba(8,10,32,0.65)', border: '1px solid rgba(99,102,241,0.12)'}}>
+                    <div className="section-label mb-3" style={{color: '#818cf8'}}>
+                      {lang === "it" ? "Indice di Coincidenza" : "Index of Coincidence"}
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-bold" style={{fontFamily: 'JetBrains Mono', background: 'linear-gradient(135deg,#818cf8,#22d3ee)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'}}>
+                          {coincidenceIndex.toFixed(4)}
+                        </span>
+                        <span className="badge badge-indigo">IC</span>
                       </div>
+                      <p className="text-[10px] text-slate-500 leading-relaxed">
+                        {lang === "it"
+                          ? "I testi normali variano tra 0.065 e 0.080. L'entropia Voynich insolitamente bassa indica un sistema di abbreviazioni fitte o un falso artificiale."
+                          : "Standard text ranges from 0.065 to 0.080. Voynich's lower index suggests extreme abbreviation rules or generative artificial patterns."}
+                      </p>
                     </div>
                   </div>
                 </div>
 
               </div>
-
-              {/* Server-grounded machine auto decryption triggers */}
-              <div className="border-t border-white/10 pt-4 mt-4">
-                <button
-                  onClick={handleAutoDecrypt}
-                  disabled={autoDecryptLoading}
-                  className="w-full py-4 bg-indigo-500 hover:bg-indigo-400 text-white disabled:bg-white/5 disabled:text-slate-500 font-bold uppercase tracking-widest text-xs rounded transition-all shadow-[0_0_20px_rgba(99,102,241,0.25)] hover:shadow-[0_0_25px_rgba(99,102,241,0.4)] disabled:shadow-none cursor-pointer flex items-center justify-center gap-2"
-                >
-                  {autoDecryptLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                      <span className="font-mono text-[11px] tracking-widest">{language === "it" ? "CALCOLO ALGORITMICO IN CORSO..." : "RUNNING CIPHER CRUNCHER..."}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4" />
-                      <span className="font-mono text-[11px] tracking-widest">
-                        {language === "it" 
-                          ? `RIELABORA STRUTTURA CIPHER IA`
-                          : `RUN GEMINI DECIPHER ATTEMPT`
-                        }
-                      </span>
-                    </>
-                  )}
-                </button>
-
-                {/* Print AI decryption results layout */}
-                {autoDecryptResult && (
-                  <div className="mt-4 p-5 bg-[#0c121d] border border-cyan-500/30 rounded-xl space-y-4 max-h-[250px] overflow-y-auto relative shadow-[inset_0_0_25px_rgba(34,211,238,0.04)]">
-                    <div className="absolute left-0 right-0 h-px bg-cyan-400/20 shadow-[0_0_8px_#22d3ee] pointer-events-none scan-beam"></div>
-                    <div className="flex items-center gap-2 border-b border-white/5 pb-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-                      <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-widest">
-                        {language === "it" ? "Matrice di Decodifica Gemini" : "Heuristic Matrix Solution"}
-                      </span>
-                    </div>
-
-                    {autoDecryptResult.hypotheticalTranslation && (
-                      <div className="space-y-1.5">
-                        <span className="text-[9px] font-mono text-cyan-400/80 tracking-widest block uppercase font-bold">
-                          {language === "it" ? "Traduzione Ipotetica Sostitutiva:" : "Hypothetical Content Translation:"}
-                        </span>
-                        <p className="text-xs text-slate-100 bg-black/40 p-3.5 rounded border border-white/5 italic font-serif leading-relaxed select-text">
-                          "{autoDecryptResult.hypotheticalTranslation}"
-                        </p>
-                      </div>
-                    )}
-
-                    {autoDecryptResult.statisticalCommentary && (
-                      <div className="space-y-1.5">
-                        <span className="text-[9px] font-mono text-slate-400 tracking-widest block uppercase font-bold">
-                          {language === "it" ? "Rilevanza Statistica:" : "Statistical Soundness:"}
-                        </span>
-                        <p className="text-xs text-slate-350 leading-relaxed font-sans">
-                          {autoDecryptResult.statisticalCommentary}
-                        </p>
-                      </div>
-                    )}
-
-                    {autoDecryptResult.wordByWordAnalysis && autoDecryptResult.wordByWordAnalysis.length > 0 && (
-                      <div className="space-y-2 pt-1">
-                        <span className="text-[9px] font-mono text-slate-400 tracking-widest block uppercase font-bold">
-                          {language === "it" ? "Studio Parola per Parola:" : "Vocabulary Analysis:"}
-                        </span>
-                        <div className="text-xs space-y-2 select-text">
-                          {autoDecryptResult.wordByWordAnalysis.map((w, index) => (
-                            <div key={index} className="bg-black/35 p-2.5 rounded flex flex-wrap gap-2 items-center justify-between border border-white/5">
-                              <span className="font-serif font-bold text-cyan-400">{w.voynichWord}</span>
-                              <span className="text-emerald-400 font-serif font-semibold">&rarr; "{w.translation}"</span>
-                              <span className="text-slate-400 text-[10px] font-mono">{w.explanation}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
             </div>
           )}
 
-          {/* TAB 3 CONTENT: Interactive Virtual Keyboard and Symbol reference library */}
+          {/* ── KEYBOARD TAB ──────────────────────── */}
           {activeTab === "keyboard" && (
-            <div className="flex-1 overflow-y-auto p-6 max-h-[72vh] flex flex-col justify-between space-y-6">
-              
-              <div className="space-y-6">
-                <div className="p-4 bg-white/5 border border-white/10 rounded-lg">
-                  <span className="text-[10px] font-mono text-cyan-400 uppercase block font-bold mb-1 tracking-widest">
-                    {language === "it" ? "LIBRERIA SCRITTURA MANUALE (Crea Testo Voynich)" : "MANUAL INTERACTIVE CODE EDITOR"}
-                  </span>
-                  <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                    {language === "it" 
-                      ? "Digita caratteri EVA standard sul sistema o clicca sulla matrice di tasti sottratti per visualizzare in tempo reale la scrittura a mano." 
-                      : "Type normal letters or click keys below to render real-time vector Voynich drawings."}
+            <div className="flex-1 overflow-y-auto p-5 max-h-[72vh] flex flex-col justify-between space-y-5">
+              <div className="space-y-5">
+                <div className="p-4 rounded-2xl" style={{background: 'rgba(8,14,28,0.60)', border: '1px solid rgba(255,255,255,0.07)'}}>
+                  <div className="section-label mb-2">
+                    {lang === "it" ? "Editor Scrittura Voynich" : "Manual Code Editor"}
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    {lang === "it"
+                      ? "Digita caratteri EVA standard o clicca sulla matrice di tasti per visualizzare in tempo reale la scrittura vettoriale del manoscritto."
+                      : "Type normal letters or click keys below to render real-time vector Voynich glyphs."}
                   </p>
                 </div>
 
-                {/* Typed text visualization dashboard container */}
                 <div className="space-y-4">
-                  {/* Styled Input Row */}
                   <div>
-                    <span className="text-[10px] font-mono text-cyan-400/80 font-bold tracking-widest uppercase block mb-1.5">
-                      {language === "it" ? "Trascrizione Alfabeto EVA (Input modificabile):" : "Normal Keyboard Transcription (EVA):"}
-                    </span>
+                    <div className="section-label mb-2">
+                      {lang === "it" ? "Input EVA" : "EVA Input"}
+                    </div>
                     <input
                       type="text"
                       value={typedText}
-                      onChange={(e) => setTypedText(e.target.value)}
+                      onChange={e => setTypedText(e.target.value)}
                       placeholder="Scrivi qui usando lettere EVA..."
-                      className="w-full bg-black/40 border border-white/10 rounded px-4 py-3 text-sm font-mono text-emerald-400 focus:outline-none focus:border-cyan-500 transition-colors"
+                      className="w-full rounded-xl px-4 py-3 text-sm text-emerald-400 focus:outline-none transition-all"
+                      style={{background: 'rgba(4,8,18,0.70)', border: '1px solid rgba(255,255,255,0.09)', fontFamily: 'JetBrains Mono', caretColor: '#22d3ee'}}
+                      onFocus={e => { e.target.style.borderColor = 'rgba(34,211,238,0.35)'; }}
+                      onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.09)'; }}
                     />
                   </div>
-
-                  {/* Rendered output panel styled in gold borders */}
-                  <div className="p-5 bg-[#0c121d] border border-cyan-500/20 rounded-xl flex flex-col gap-2 min-h-[100px] relative overflow-hidden shadow-[inset_0_0_30px_rgba(34,211,238,0.03)]">
-                    {/* Scan line overlay inside preview element */}
-                    <div className="absolute left-0 right-0 h-px bg-cyan-400/20 shadow-[0_0_8px_#22d3ee] pointer-events-none scan-beam"></div>
-
-                    <span className="text-[8px] font-mono text-cyan-400/60 font-bold uppercase tracking-widest absolute top-2 right-3">
-                      CARATTERI VETTORIALI
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-400 font-bold uppercase tracking-wider block mb-1">
-                      {language === "it" ? "Resa Grafica Manoscritta (Voynich Text):" : "Handwritten Render Output:"}
-                    </span>
-                    
+                  <div className="p-5 flex flex-col gap-2 min-h-[100px] relative overflow-hidden rounded-2xl" style={{background: 'rgba(4,10,22,0.80)', border: '1px solid rgba(34,211,238,0.14)', boxShadow: 'inset 0 0 30px rgba(34,211,238,0.02)'}}>
+                    <div className="absolute left-0 right-0 h-px scan-beam" style={{background: 'linear-gradient(90deg,transparent,rgba(34,211,238,0.25),transparent)'}} />
+                    <span className="text-[8px] font-bold uppercase tracking-widest absolute top-2 right-3" style={{fontFamily: 'JetBrains Mono', color: 'rgba(34,211,238,0.40)'}}>Caratteri Vettoriali</span>
+                    <div className="section-label mb-1">
+                      {lang === "it" ? "Resa Grafica Voynich" : "Handwritten Render Output"}
+                    </div>
                     {typedText.trim() ? (
-                      <div className="p-2 select-text bg-black/30 rounded border border-white/5 leading-loose">
+                      <div className="p-2 select-text rounded-lg leading-loose" style={{background: 'rgba(0,0,0,0.30)', border: '1px solid rgba(255,255,255,0.05)'}}>
                         <VoynichText text={typedText} size={24} />
                       </div>
                     ) : (
-                      <span className="text-xs italic text-slate-500 font-mono">
-                        {language === "it" ? "Vuoto. Fai clic sui tasti per generare grafi..." : "Empty. Start hitting key switches below to output glyphs..."}
+                      <span className="text-xs italic text-slate-600" style={{fontFamily: 'JetBrains Mono'}}>
+                        {lang === "it" ? "Vuoto. Clicca sui tasti per generare grafi..." : "Empty. Click key switches below to output glyphs..."}
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* 2. Custom Ornate Medieval Voynich key switchpad */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-wider">
-                      {language === "it" ? "Tastiera Virtuale Voynich:" : "Virtual Glyph Keypad:"}
-                    </span>
-                    <button
-                      onClick={() => setTypedText("")}
-                      className="text-[9px] font-mono text-red-400 hover:text-red-300 bg-red-500/10 border border-red-500/20 px-2.5 py-1 rounded transition-colors uppercase tracking-widest cursor-pointer"
-                    >
-                      CLEAR
+                    <div className="section-label">
+                      {lang === "it" ? "Tastiera Virtuale Voynich" : "Virtual Glyph Keypad"}
+                    </div>
+                    <button onClick={() => setTypedText("")} className="btn-danger">
+                      <X className="w-3 h-3" />
+                      Clear
                     </button>
                   </div>
-
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {EVA_ALPHABET.map((letter) => {
-                      return (
-                        <button
-                          key={letter.eva}
-                          onClick={() => setTypedText(prev => prev + letter.eva)}
-                          className="flex items-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-500/40 p-2 rounded transition-all cursor-pointer text-left group"
-                        >
-                          <div className="w-8 h-8 bg-black/40 rounded flex items-center justify-center border border-white/5 group-hover:bg-cyan-500/10 group-hover:border-cyan-400/40 transition-colors">
-                            <VoynichText text={letter.eva} size={15} />
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-xs font-mono font-bold text-slate-200 group-hover:text-cyan-300 transition-colors">
-                              {letter.name.split(" ")[0]} 
-                              <span className="text-slate-500 text-[9px] ml-1">("{letter.eva}")</span>
-                            </span>
-                            <span className="text-[9px] text-slate-400 uppercase truncate max-w-[90px]">
-                              {letter.approxSound}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
+                    {EVA_ALPHABET.map(letter => (
+                      <button
+                        key={letter.eva}
+                        onClick={() => setTypedText(prev => prev + letter.eva)}
+                        className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer text-left transition-all"
+                        style={{background: 'rgba(6,12,26,0.60)', border: '1px solid rgba(255,255,255,0.07)'}}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(34,211,238,0.28)'; (e.currentTarget as HTMLElement).style.background = 'rgba(34,211,238,0.05)'; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.07)'; (e.currentTarget as HTMLElement).style.background = 'rgba(6,12,26,0.60)'; }}
+                      >
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background: 'rgba(0,0,0,0.40)', border: '1px solid rgba(255,255,255,0.06)'}}>
+                          <VoynichText text={letter.eva} size={15} />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-slate-200" style={{fontFamily: 'JetBrains Mono'}}>
+                            {letter.name.split(" ")[0]}
+                            <span className="text-[9px] ml-1" style={{color: '#475569'}}>({letter.eva})</span>
+                          </span>
+                          <span className="text-[9px] text-slate-500 uppercase truncate max-w-[90px]">{letter.approxSound}</span>
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 </div>
-
               </div>
 
-              {/* Symbol index summary details page footer */}
-              <div className="border-t border-white/10 pt-4 mt-6 text-[10px] text-slate-400 flex items-start gap-2.5 italic">
+              <div className="pt-4 mt-4 flex items-start gap-2.5 italic" style={{borderTop: '1px solid rgba(255,255,255,0.07)'}}>
                 <Info className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-                <p className="leading-relaxed font-sans">
-                  {language === "it"
-                    ? "La combinazione di lettere 'daiin' (EVA: 8an) costituisce circa il 25% del vocabolario erboristico. Spesso interpretato come desinenza sacramentale o ripetitore di sillabe casuali."
-                    : "The special word combination 'daiin' (represented in EVA as 8an) represents up to 25% of herbal sections vocabulary. Identified as sacramental indicators or pseudo-text loops."}
+                <p className="text-[10px] text-slate-500 leading-relaxed">
+                  {lang === "it"
+                    ? "La combinazione 'daiin' (EVA: 8an) costituisce circa il 25% del vocabolario erboristico. Spesso interpretato come desinenza sacramentale."
+                    : "The word 'daiin' (EVA: 8an) represents up to 25% of herbal sections vocabulary. Identified as sacramental indicators."}
                 </p>
               </div>
-
             </div>
           )}
-
         </section>
       </main>
 
-      {/* Cybernetic Footer Bar replica matching the Immersive UI design */}
-      <footer className="h-12 border-t border-white/10 bg-[#080b10] flex items-center justify-between px-6 sm:px-8 text-[9px] sm:text-[10px] tracking-widest text-white/40 font-mono relative z-20 shrink-0">
-        <div className="flex gap-6">
-          <span>ENCRYPT_SYSTEM_v4_STABLE</span>
-          <span className="hidden sm:inline">BUFFER_STATUS: OPTIMAL</span>
+      {/* ── Footer ──────────────────────────────── */}
+      <footer className="h-12 flex items-center justify-between px-6 sm:px-8 relative z-20 shrink-0" style={{background: 'rgba(4,8,18,0.88)', backdropFilter: 'blur(16px)', borderTop: '1px solid rgba(255,255,255,0.06)'}}>
+        <div className="flex gap-5 items-center">
+          <span className="hidden md:inline" style={{fontFamily: 'JetBrains Mono', fontSize: '9px', color: 'rgba(255,255,255,0.20)', letterSpacing: '0.12em', textTransform: 'uppercase'}}>Voynich Decipherer · v4.0.2</span>
+          <span className="font-semibold uppercase" style={{fontFamily: 'JetBrains Mono', fontSize: '9px', letterSpacing: '0.12em', background: 'linear-gradient(135deg,#22d3ee,#818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'}}>
+            Castro Massimo · DevTools
+          </span>
         </div>
-        <div className="flex gap-6">
-          <span className="text-cyan-600 font-semibold">{language === "it" ? "CONNESSIONE SICURA: AES_GCM_v2" : "SECURE CONNECTION: AES_GCM_v2"}</span>
-          <span className="hidden xs:inline">&copy; 2026 LABORATORIO CRITTOGRAFICO</span>
+        <div className="flex gap-4 items-center">
+          <a
+            href="mailto:castromassimo@gmail.com"
+            className="transition-all"
+            style={{fontFamily: 'JetBrains Mono', fontSize: '9px', color: '#6366f1', letterSpacing: '0.08em', textTransform: 'uppercase'}}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#22d3ee'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#6366f1'; }}
+          >
+            castromassimo@gmail.com
+          </a>
+          <span className="hidden xs:inline" style={{fontFamily: 'JetBrains Mono', fontSize: '9px', color: 'rgba(255,255,255,0.20)', letterSpacing: '0.08em'}}>© 2026</span>
         </div>
       </footer>
 
+      {/* ── ZOOM MODAL OVERLAY ────────────────── */}
+      {zoomOpen && (
+        <div className="zoom-overlay">
+          {/* Zoom Toolbar */}
+          <div className="zoom-toolbar">
+            <span style={{fontFamily: 'JetBrains Mono', fontSize: '10px', color: '#22d3ee', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700}}>
+              {lang === "it" ? "Zoom Pagina" : "Page Zoom"}
+            </span>
+            <div style={{width: '1px', height: '20px', background: 'rgba(255,255,255,0.10)'}} />
+            <button
+              onClick={() => setZoomLevel(z => Math.max(50, z - 25))}
+              className="btn-icon"
+              title="Zoom Out"
+              disabled={zoomLevel <= 50}
+            >
+              <Minus className="w-3.5 h-3.5" />
+            </button>
+            <input
+              type="range"
+              min={50}
+              max={250}
+              step={10}
+              value={zoomLevel}
+              onChange={e => setZoomLevel(Number(e.target.value))}
+              className="zoom-slider"
+              title={`${zoomLevel}%`}
+            />
+            <button
+              onClick={() => setZoomLevel(z => Math.min(250, z + 25))}
+              className="btn-icon"
+              title="Zoom In"
+              disabled={zoomLevel >= 250}
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+            <span style={{fontFamily: 'JetBrains Mono', fontSize: '12px', fontWeight: 700, color: '#e2e8f0', minWidth: '42px', textAlign: 'center'}}>
+              {zoomLevel}%
+            </span>
+            <div style={{width: '1px', height: '20px', background: 'rgba(255,255,255,0.10)'}} />
+            <button
+              onClick={() => setZoomLevel(100)}
+              className="btn-secondary"
+              style={{padding: '5px 12px', fontSize: '9px', borderRadius: '20px'}}
+              title="Reset zoom"
+            >
+              <RotateCcw className="w-3 h-3" />
+              100%
+            </button>
+            <button
+              onClick={() => setZoomOpen(false)}
+              className="btn-icon"
+              style={{background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171'}}
+              title={lang === "it" ? "Chiudi Zoom" : "Close Zoom"}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Zoom Content */}
+          <div className="zoom-content-wrapper">
+            {activeUploadedImage ? (
+              <img
+                src={activeUploadedImage}
+                alt={lang === "it" ? "Pagina del manoscritto" : "Manuscript page"}
+                style={{transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top center', transition: 'transform 0.2s ease', maxWidth: '100%'}}
+              />
+            ) : documentSource === "voynich_pdf" ? (
+              <div className="flex flex-col items-center gap-6 w-full" style={{transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top center', transition: 'transform 0.2s ease'}}>
+                <div className="w-full max-w-2xl rounded-2xl overflow-hidden" style={{background: 'rgba(4,8,18,0.80)', border: '1px solid rgba(34,211,238,0.15)', padding: '32px'}}>
+                  <div className="section-label mb-4">{lang === "it" ? "Trascrizione EVA della Pagina" : "Page EVA Transcription"}</div>
+                  <pre className="whitespace-pre-line leading-loose text-sm" style={{fontFamily: 'JetBrains Mono', color: '#e2e8f0'}}>{pageEvaTranscription || (lang === "it" ? "Nessun testo disponibile." : "No text available.")}</pre>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center space-y-4">
+                  <Maximize2 className="w-12 h-12 text-slate-600 mx-auto" />
+                  <p className="text-sm text-slate-500" style={{fontFamily: 'JetBrains Mono'}}>
+                    {lang === "it" ? "Carica un documento per usare lo zoom." : "Upload a document to use zoom."}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

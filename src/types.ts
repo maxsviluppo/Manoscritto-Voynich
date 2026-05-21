@@ -11,6 +11,7 @@ export interface Hotspot {
   evaTranscription?: string;
   translationIt?: string;
   translationEn?: string;
+  wordByWord?: WordAnalysis[];
 }
 
 export interface Theory {
