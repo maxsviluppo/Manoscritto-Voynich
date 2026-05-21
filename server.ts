@@ -11,8 +11,8 @@ async function startServer() {
   app.use(express.json({ limit: "15mb" }));
 
   // Initialize Gemini client lazily to avoid startup crash if key is missing
-  const getGeminiClient = () => {
-    const apiKey = process.env.GEMINI_API_KEY;
+  const getGeminiClient = (customApiKey?: string) => {
+    const apiKey = customApiKey || process.env.GEMINI_API_KEY;
     if (!apiKey) {
       console.warn("WARNING: GEMINI_API_KEY is not defined in environment secrets. AI deciphering will be mock-simulated.");
       return null;
@@ -72,12 +72,165 @@ async function startServer() {
   app.post("/api/analyze", async (req, res) => {
     try {
       const { elementId, label, imageBase64, imagesBase64, customQuestion, language = "it" } = req.body;
-      const ai = getGeminiClient();
+      const userApiKey = (req.headers["x-api-key"] as string) || req.body.apiKey;
+      const ai = getGeminiClient(userApiKey);
 
       if (!ai) {
+        const mockParagraphs = [
+          {
+            id: "par_top_left",
+            nameIt: "Paragrafo A (In Alto a Sinistra)",
+            name: "Paragraph A (Top Left)",
+            descriptionIt: "Paragrafo di apertura a sinistra del fusto. Contiene termini corti con la classica frequenza ripetitiva tipica dei paragrafi erboristici Voynich.",
+            description: "Introductory paragraph surrounding the left side of the stem, featuring common Voynich beginnings and repetitive syllable grids.",
+            evaTranscription: "tfccy dready or\no tteeo dyedy ot oorg\n8o ttey otteotey oty\n8or dtoltco 8an 8an",
+            translationIt: "Raccogli le foglie bicolore mature e falle bollire nel vaso all'alba. Posa tre gocce sul ciglio dell'occhio malato per riposare l'anima tormentata.",
+            translationEn: "Gather mature bi-colored leaves and boil them in the morning vessel. Place three drops upon the ailing eye to soothe the restless mind.",
+            wordByWord: [
+              { voynichWord: "tfccy", translation: "Raccogli ed estrai", explanation: "Verbo d'azione iniziale tipico dei ricettari medievali." },
+              { voynichWord: "dready", translation: "le foglie fresche", explanation: "Termine indicante fogliame o parti verdi della pianta." },
+              { voynichWord: "or", translation: "di colore verde e ocra", explanation: "Congiunzione o aggettivo descrittivo del bicolore." },
+              { voynichWord: "o", translation: "pienamente sviluppate", explanation: "Indicatore di maturità biologica o stato della foglia." },
+              { voynichWord: "tteeo", translation: "lessa o riscalda", explanation: "Termine tecnico correlato all'ebollizione o infusione calda." },
+              { voynichWord: "dyedy", translation: "nel vaso di terracotta", explanation: "Contenitore alchemico o mortaio per la preparazione." },
+              { voynichWord: "ot", translation: "al sorgere del sole", explanation: "Riferimento orario legato al mattino o rugiada mattutina." },
+              { voynichWord: "oorg", translation: "e versa delicatamente", explanation: "Azione di dosaggio del liquido ottenuto." },
+              { voynichWord: "8o", translation: "esattamente tre gocce", explanation: "Prefisso numerico quantitativo o frazione alchemica." },
+              { voynichWord: "ttey", translation: "sulla palpebra o bordo", explanation: "Indicazione anatomica della zona d'applicazione." },
+              { voynichWord: "otteotey", translation: "della cavità oculare", explanation: "Organo bersaglio del trattamento lenitivo." },
+              { voynichWord: "oty", translation: "affetto da infiammazione", explanation: "Stato patologico (dolore, calore o arrossamento)." },
+              { voynichWord: "8or", translation: "per alleviare il dolore", explanation: "Scopo terapeutico dell'infuso preparato." },
+              { voynichWord: "dtoltco", translation: "lo spirito vitale", explanation: "Riferimento al benessere animico o sollievo generale." },
+              { voynichWord: "8an", translation: "agitata dal delirio", explanation: "Stato d'inquietudine o febbre alta del paziente." },
+              { voynichWord: "8an", translation: "e restituire la quiete", explanation: "Formula augurale di chiusura della ricetta." }
+            ]
+          },
+          {
+            id: "par_top_right",
+            nameIt: "Paragrafo B (In Alto a Destra)",
+            name: "Paragraph B (Top Right)",
+            descriptionIt: "Paragrafo a destra dello stelo. Fornisce parole lunghe e ricche di lettere 'gallows' a doppia asola (caratteri t e k).",
+            description: "Paragraph on the right side of the main stem, featuring double-loop cursive-like glyphs ('gallows').",
+            evaTranscription: "ot tteey oror dtan\n8oro dttoda ottoda8 cro8y\n8 ttooddy ettey totteorody 8an\n2ooudy eeolto8a",
+            translationIt: "Unisci gli steli secchi del fiore d'oro con l'acqua sorgiva del monte sacro. Mescola lentamente finché la pozione non rilascia una fitta nebbia argentea.",
+            translationEn: "Mix the withered golden stems with spring water from the high mount. Stir slowly until the liquor emits a thick, silvery mist.",
+            wordByWord: [
+              { voynichWord: "ot", translation: "Unisci / Mescola insieme", explanation: "Azione di combinazione di ingredienti secchi." },
+              { voynichWord: "tteey", translation: "le parti legnose dello stelo", explanation: "Riferimento ai rami o legnetti del fiore." },
+              { voynichWord: "oror", translation: "disidratati o appassiti", explanation: "Stato di essiccazione della materia vegetale." },
+              { voynichWord: "dtan", translation: "del bocciolo", explanation: "Inflorescenza o calice superiore della pianta." },
+              { voynichWord: "8oro", translation: "dorato", explanation: "Colore giallo brillante o valore nobile solare." },
+              { voynichWord: "dttoda", translation: "con l'elemento liquido purificato", explanation: "Veicolo acquoso per l'estrazione dei princìpi." },
+              { voynichWord: "ottoda8", translation: "proveniente dalla sorgente", explanation: "Indicatore di acqua pura o rugiada pura." },
+              { voynichWord: "cro8y", translation: "del monte", explanation: "Riferimento alla provenienza dell'ingrediente." },
+              { voynichWord: "8", translation: "consacrato agli dei", explanation: "Carattere singoli indicante purificazione o sacralità." },
+              { voynichWord: "ttooddy", translation: "Mescola lentamente in senso orario", explanation: "Tecnica di miscelazione della pozione." },
+              { voynichWord: "ettey", translation: "senza fretta, con pazienza", explanation: "Avverbio di modalità per l'infusione." },
+              { voynichWord: "totteorody", translation: "fino a che il decotto", explanation: "Indicatore temporale del processo chimico." },
+              { voynichWord: "8an", translation: "non produce o esala", explanation: "Emissione di sostanze volatili." },
+              { voynichWord: "2ooudy", translation: "una densa o spessa", explanation: "Proprietà visuale del vapore rilasciato." },
+              { voynichWord: "eeolto8a", translation: "nebbia argentea e lucente", explanation: "Esito della reazione alchemica finale." }
+            ]
+          },
+          {
+            id: "par_bottom_left",
+            nameIt: "Paragrafo C (In Basso a Sinistra)",
+            name: "Paragraph C (Bottom Left)",
+            descriptionIt: "Grande blocco in basso a sinistra contenente sequenze di lettere concatenate ('ch', 'sh', 'ol'). Lo stile richiama molto le abbreviazioni notarili del XV secolo.",
+            description: "Large paragraph on lower-left containing complex ligature clusters. Notice the highly nested letters resembling 15th-century abbreviations.",
+            evaTranscription: "totla8 dror 8and dteoa8\ncrotly cror dteor 8tor ottas\nte or tteee occor 8or tteey\nottorteor llot tltey cror lta\ndor ottor cror 8ody lta 8an\ntlan ctotloccy 8as croda",
+            translationIt: "L'autunno ritira la linfa dai rami inferiori per raccoglierla nel fusto grasso. Cuoci il rizoma scaglioso sul fuoco lento fino a ridurlo in pasta lenitiva per le infezioni della pelle.",
+            translationEn: "Autumn draws the sap down from the lower branches into the swollen stalk. Roast the scaly rhizome over a slow flame for a soothing ointment against dermal plagues.",
+            wordByWord: [
+              { voynichWord: "totla8", translation: "Il tempo freddo del raccolto", explanation: "Riferimento alla stagione autunnale." },
+              { voynichWord: "dror", translation: "richiama o nasconde", explanation: "Azione naturale di riflusso della linfa." },
+              { voynichWord: "8and", translation: "il fluido vitale", explanation: "Sostanza nutritiva della pianta (linfa)." },
+              { voynichWord: "dteoa8", translation: "dai rami", explanation: "Riferimento ai rami e foglie esterne." },
+              { voynichWord: "crotly", translation: "più vicine alla terra", explanation: "Posizione inferiore dei rami." },
+              { voynichWord: "cror", translation: "per concentrarla e conservarla", explanation: "Processo protettivo del vegetale." },
+              { voynichWord: "dteor", translation: "nella parte centrale", explanation: "Il midollo o stelo portante." },
+              { voynichWord: "8tor", translation: "dello stelo rigonfio", explanation: "Caratteristica fisica del fusto carnoso." },
+              { voynichWord: "ottas", translation: "Riscalda sopra i carboni", explanation: "Metodo di cottura della radice." },
+              { voynichWord: "te", translation: "il rizoma", explanation: "Tubercolo o radice scagliosa." },
+              { voynichWord: "or", translation: "coperto di scaglie legnose", explanation: "Morfologia esteriore del rizoma." },
+              { voynichWord: "tteee", translation: "sopra la fiamma viva", explanation: "Elemento fuoco per la trasformazione." },
+              { voynichWord: "occor", translation: "regolata a bassa intensità", explanation: "Modalità di riscaldamento moderato." },
+              { voynichWord: "8or", translation: "fino al momento in cui", explanation: "Raggiungimento dello stato desiderato." },
+              { voynichWord: "tteey", translation: "si ammorbidisce o sfalda", explanation: "Cambiamento di consistenza della polpa." },
+              { voynichWord: "ottorteor", translation: "in una consistenza densa (unguento)", explanation: "Formato finale del preparato oleoso." },
+              { voynichWord: "llot", translation: "capace di lenire il bruciore", explanation: "Proprietà lenitiva o rinfrescante." },
+              { voynichWord: "tltey", translation: "delle ferite aperte", explanation: "Indicazione clinica per piaghe o tagli." },
+              { voynichWord: "cror", translation: "ed eruzioni cutanee", explanation: "Stati infiammatori dell'epidermide." },
+              { voynichWord: "lta", translation: "del derma", explanation: "Zona anatomica superficiale." },
+              { voynichWord: "dor", translation: "Spalma delicatamente con un panno", explanation: "Istruzioni per l'applicazione topica." },
+              { voynichWord: "ottor", translation: "durante le ore notturne", explanation: "Momento preferenziale per l'efficacia." },
+              { voynichWord: "cror", translation: "subito prima", explanation: "Indicazione di sequenza temporale." },
+              { voynichWord: "8ody", translation: "del riposo", explanation: "Coricamento o sonno del paziente." },
+              { voynichWord: "lta", translation: "sulla zona arrossata", explanation: "Punto esatto di stesura." },
+              { voynichWord: "8an", translation: "colpita dal male", explanation: "Tessuto infetto o dolorante." },
+              { voynichWord: "tlan", translation: "per indurre rapida guarigione", explanation: "Azione terapeutica attesa." },
+              { voynichWord: "ctotloccy", translation: "dei tessuti molli deteriorati", explanation: "Rigenerazione cellulare della carne." },
+              { voynichWord: "8as", translation: "prevenendo la formazione", explanation: "Azione preventiva antimicrobica." },
+              { voynichWord: "croda", translation: "di segni o piaghe permanenti", explanation: "Chiusura estetica della cicatrice." }
+            ]
+          },
+          {
+            id: "par_bottom_right",
+            nameIt: "Paragrafo D (In Basso a Destra)",
+            name: "Paragraph D (Bottom Right)",
+            descriptionIt: "Blocco conclusivo sulla destra. Termina con la tipica formula ripetitiva 'tor cro8ad', ricorrente nelle chiusure di decine di capitoli botanici.",
+            description: "The concluding block on the right, ending with the standard 'tor cro8ad' formula, found in many Voynich herbal pages.",
+            evaTranscription: "8an crty tlo8a olland crofdy\n8o rccca crodo qor cry ttey\nottos 8or 8oro qttos 8or cro8y\ncror etteor crody ctor 8and\ncroy sotol ottor 8ad croda\n2crody tor cro8ad",
+            translationIt: "Conserva la miscela al riparo dal sole d'inverno. Somministra due cucchiai per lenire la tosse cupa ed indurre un sonno ristoratore privo di incubi molesti. Sigilla con cera vergine.",
+            translationEn: "Store this mixture safe from the harsh winter sun. Administer two spoonfuls to quiet the heavy cough and induce a blessed sleep free of bad dreams. Seal with virgin wax.",
+            wordByWord: [
+              { voynichWord: "8an", translation: "Custodisci in luogo asciutto", explanation: "Istruzioni di conservazione a lungo termine." },
+              { voynichWord: "crty", translation: "il preparato filtrato", explanation: "Oggetto della conservazione." },
+              { voynichWord: "tlo8a", translation: "lontano dalla luce diretta", explanation: "Protezione dai raggi solari." },
+              { voynichWord: "olland", translation: "dei caldi raggi solari", explanation: "Fattore di degradazione chimica." },
+              { voynichWord: "crofdy", translation: "durante la stagione fredda", explanation: "Periodo di stoccaggio ottimale." },
+              { voynichWord: "8o", translation: "Fai bere al malato", explanation: "Istruzioni per il dosaggio per via orale." },
+              { voynichWord: "rccca", translation: "esattamente due dosi", explanation: "Quantità prescritta." },
+              { voynichWord: "crodo", translation: "in cucchiai di legno", explanation: "Strumento di misurazione e assunzione." },
+              { voynichWord: "qor", translation: "per calmare o addolcire", explanation: "Effetto espettorante o lenitivo." },
+              { voynichWord: "cry", translation: "l'irritazione dei bronchi", explanation: "Sintomatologia della tosse." },
+              { voynichWord: "ttey", translation: "profonda e insistente", explanation: "Carattere della tosse (tosse cupa)." },
+              { voynichWord: "ottos", translation: "e favorire lo scivolamento", explanation: "Passaggio dello spirito verso lo stato ipnotico." },
+              { voynichWord: "8or", translation: "in uno stato di riposo profondo", explanation: "Il sonno indotto dalle erbe." },
+              { voynichWord: "8oro", translation: "rigenerante per le membra", explanation: "Qualità del sonno ristoratore." },
+              { voynichWord: "qttos", translation: "completamente privo", explanation: "Esclusione di disturbi notturni." },
+              { voynichWord: "8or", translation: "di visioni terrificanti", explanation: "Prevenzione di incubi o visioni febbrili." },
+              { voynichWord: "cro8y", translation: "che turbano la notte", explanation: "Elemento di disturbo del riposo." },
+              { voynichWord: "cror", translation: "Permetti al corpo", explanation: "Istruzioni post-somministrazione." },
+              { voynichWord: "etteor", translation: "di sudare e riposare", explanation: "Reazione fisica indotta dalle erbe." },
+              { voynichWord: "crody", translation: "sotto coperte calde", explanation: "Termoregolazione del paziente." },
+              { voynichWord: "ctor", translation: "fino al mattino", explanation: "Durata dell'effetto del sonnifero." },
+              { voynichWord: "8and", translation: "Poi al risveglio", explanation: "Fase successiva del trattamento." },
+              { voynichWord: "croy", translation: "chiudi ermeticamente", explanation: "Istruzioni di conservazione post-apertura." },
+              { voynichWord: "sotol", translation: "l'imboccatura del vaso", explanation: "Parte dell'ampolla da sigillare." },
+              { voynichWord: "ottor", translation: "utilizzando cera fusa", explanation: "Materiale sigillante alchemico." },
+              { voynichWord: "8ad", translation: "di api purissima", explanation: "Qualità della cera." },
+              { voynichWord: "croda", translation: "raccolta nei boschi sacri", explanation: "Origine biologico-rituale della cera." },
+              { voynichWord: "2crody", translation: "in modo che il preparato", explanation: "Scopo del sigillo ermetico." },
+              { voynichWord: "tor", translation: "preservi intatta", explanation: "Mantenimento dei princìpi attivi." },
+              { voynichWord: "cro8ad", translation: "la sua virtù medicamentosa", explanation: "Efficacia curativa nel tempo." }
+            ]
+          }
+        ];
+
         return res.json({
           success: true,
-          text: `[Modalità Demo - Chiave API non configurata]\n\nQuesto è un feedback simulato per l'elemento: **${label || elementId}**.\n\nHai chiesto: "${customQuestion || 'Analisi generale'}"\n\nNello studio storico del Manoscritto Voynich, questa sezione (f34v) rappresenta un tipico campione di erbario medievale. Le foglie bicolore alternate indicano un possibile significato medicinale o alchemico. Per sbloccare l'analisi in tempo reale basata su intelligenza artificiale con Gemini, inserisci una corretta chiave API nel pannello Secrets di AI Studio.`
+          text: `[Modalità Demo - Chiave API non configurata]
+
+Questo è un feedback simulato per l'elemento: **${label || elementId}**.
+
+Hai chiesto: "${customQuestion || 'Analisi generale'}"
+
+Nello studio storico del Manoscritto Voynich, questa sezione rappresenta un tipico campione di erbario medievale. Le foglie bicolore alternate indicano un possibile significato medicinale o alchemico. Per sbloccare l'analisi in tempo reale basata su intelligenza artificiale con Gemini, inserisci una corretta chiave API nel pannello dei Secrets.
+
+\`\`\`json
+${JSON.stringify(mockParagraphs, null, 2)}
+\`\`\``
         });
       }
 
@@ -87,7 +240,25 @@ async function startServer() {
         "### 🔮 DECIFRAZIONE E TRADUZIONE IPOTETICA\n" +
         "Qui devi decifrare in modo audace, concreto e creativo il testo Voynich adiacente all'elemento analizzato (o quello fornito, come la trascrizione EVA). Proponi una o più decodifiche plausibili secondo le teorie storiche (es. Latino Abbreviato, Ebraico, Turco) e forniscine una traduzione in italiano corrente, riga per riga o parola per parola, svelando un'ipotetica formula medievale o ricetta segreta.\n\n" +
         "### 🔬 LE MIE DEDUZIONI (COSA DEDUCO)\n" +
-        "Spiega in modo esplicito 'cosa si deduce' da questa decifrazione e dall'analisi visuale dell'elemento. Formula deduzioni concrete sulle proprietà della pianta (es. sonnifero, antidoto, anestetico, veleno), sulla valenza magico-alchemica o sulla natura asemica del manoscritto, portando risposte chiare alle ipotesi aperte.";
+        "Spiega in modo esplicito 'cosa si deduce' da questa decifrazione e dall'analisi visuale dell'elemento. Formula deduzioni concrete sulle proprietà della pianta (es. sonnifero, antidoto, anestetico, veleno), sulla valenza magico-alchemica o sulla natura asemica del manoscritto, portando risposte chiare alle ipotesi aperte.\n\n" +
+        "STRUTTURA PARAGRAFI PER IL CRITTANALISI SANDBOX:\n" +
+        "Inoltre, DEVI SEMPRE terminare la risposta con un blocco di codice JSON delimitato da ```json ... ``` che divide il testo del foglio analizzato in singoli paragrafi individuati (ad esempio da 1 a 4 paragrafi o più, a seconda di quanti ne vedi nella pagina). Ciascun paragrafo nel JSON deve avere questo formato:\n" +
+        "[\n" +
+        "  {\n" +
+        "    \"id\": \"par_1\",\n" +
+        "    \"nameIt\": \"Paragrafo 1 (In alto a sinistra)\",\n" +
+        "    \"name\": \"Paragraph 1 (Top left)\",\n" +
+        "    \"descriptionIt\": \"Descrizione in italiano della posizione del paragrafo rispetto alla pianta\",\n" +
+        "    \"description\": \"Description in English of the position\",\n" +
+        "    \"evaTranscription\": \"testo voynich in caratteri EVA rilevato (es. tfccy dready or o tteeo dyedy ot oorg)\",\n" +
+        "    \"translationIt\": \"Traduzione ipotetica in italiano\",\n" +
+        "    \"translationEn\": \"Hypothetical English translation\",\n" +
+        "    \"wordByWord\": [\n" +
+        "      { \"voynichWord\": \"parola1\", \"translation\": \"traduzione1\", \"explanation\": \"spiegazione1\" }\n" +
+        "    ]\n" +
+        "  }\n" +
+        "]\n" +
+        "Assicurati che la trascrizione EVA utilizzi solo caratteri dell'alfabeto EVA (o, a, e, y, t, k, p, f, 8, r, c, l, n, d, m, g, s, x) e che le parole siano separate da spazi. Il JSON deve essere valido e posizionato alla fine del messaggio.";
 
       if (language === "en") {
         systemInstruction = "You are an expert paleographer, linguist, and Voynich Manuscript cryptanalyst. " +
@@ -96,7 +267,25 @@ async function startServer() {
           "### 🔮 HYPOTHETICAL DECIPHERMENT & TRANSLATION\n" +
           "Decipher the Voynich EVA text nearby or provided. Design a concrete translation under historical models (Abbreviated Latin, Hebrew, Proto-Turkish) into elegant readable modern language, showing what secret recipe or formula is hidden.\n\n" +
           "### 🔬 MY DEDUCTIONS (WHAT I DEDUCE)\n" +
-          "State clearly what you deduce from this decipherment and the visual element. Provide sharp, conclusive deductions about the plant's medicinal qualities (e.g. sedative, antidote, toxics), alchemical meanings, or script authenticity.";
+          "State clearly what you deduce from this decipherment and the visual element. Provide sharp, conclusive deductions about the plant's medicinal qualities (e.g. sedative, antidote, toxics), alchemical meanings, or script authenticity.\n\n" +
+          "PARAGRAPHS STRUCTURE FOR CIPHER SANDBOX:\n" +
+          "Additionally, YOU MUST ALWAYS end your response with a JSON code block enclosed in ```json ... ``` which partitions the analyzed page text into the individual paragraphs detected on the page (from 1 to 4 or more, depending on the layout). Each paragraph in the JSON must strictly follow this schema:\n" +
+          "[\n" +
+          "  {\n" +
+          "    \"id\": \"par_1\",\n" +
+          "    \"nameIt\": \"Paragrafo 1 (In alto a sinistra)\",\n" +
+          "    \"name\": \"Paragraph 1 (Top left)\",\n" +
+          "    \"descriptionIt\": \"Italian description of paragraph position relative to the plant diagram\",\n" +
+          "    \"description\": \"English description of the position\",\n" +
+          "    \"evaTranscription\": \"voynich text in EVA character format (e.g. tfccy dready or o tteeo dyedy ot oorg)\",\n" +
+          "    \"translationIt\": \"Hypothetical Italian translation\",\n" +
+          "    \"translationEn\": \"Hypothetical English translation\",\n" +
+          "    \"wordByWord\": [\n" +
+          "      { \"voynichWord\": \"word1\", \"translation\": \"translation1\", \"explanation\": \"explanation1\" }\n" +
+          "    ]\n" +
+          "  }\n" +
+          "]\n" +
+          "Ensure that the EVA transcription uses only letters from the EVA alphabet and space delimiters. The JSON block must be valid and placed at the very end of the output.";
       }
 
       let prompt = "";
@@ -169,7 +358,8 @@ async function startServer() {
   app.post("/api/decrypt-auto", async (req, res) => {
     try {
       const { textToDecrypt, cipherMethod, customMapping, language = "it" } = req.body;
-      const ai = getGeminiClient();
+      const userApiKey = (req.headers["x-api-key"] as string) || req.body.apiKey;
+      const ai = getGeminiClient(userApiKey);
 
       if (!ai) {
         return res.json({
