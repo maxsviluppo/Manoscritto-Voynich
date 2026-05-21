@@ -143,6 +143,9 @@ export default function App() {
   const language = useState<"it" | "en">("it");
   const [lang, setLang] = language;
 
+  const isLocalFile = typeof window !== "undefined" && window.location.protocol === "file:";
+  const isWrongPort = typeof window !== "undefined" && window.location.hostname === "localhost" && window.location.port !== "3000" && window.location.port !== "";
+
   const [activeTab, setActiveTab] = useState<"analyzer" | "sandbox" | "keyboard">("analyzer");
   const [selectedHotspot, setSelectedHotspot] = useState<Hotspot>(HOTSPOTS[0]);
   const [customQuestion, setCustomQuestion] = useState<string>("");
@@ -193,6 +196,46 @@ export default function App() {
     ...(customApiKey ? { "x-api-key": customApiKey } : {}),
   });
 
+  const safeFetchJson = async (url: string, options: RequestInit) => {
+    const res = await fetch(url, options);
+    const contentType = res.headers.get("content-type") || "";
+    
+    if (!res.ok) {
+      let errorMessage = `HTTP Error ${res.status}`;
+      if (contentType.includes("application/json")) {
+        try {
+          const errData = await res.json();
+          errorMessage = errData.error || errData.message || errorMessage;
+        } catch (_) {}
+      } else {
+        const text = await res.text();
+        if (res.status === 404) {
+          errorMessage = lang === "it"
+            ? "L'endpoint API non è stato trovato (Errore 404). Verifica di essere collegato sulla porta corretta (solitamente http://localhost:3000) e non direttamente sulla porta di Vite (solitamente http://localhost:5173)."
+            : "The API endpoint was not found (404 Error). Ensure you are connected to the correct port (usually http://localhost:3000) and not directly to Vite's dev port (usually http://localhost:5173).";
+        } else {
+          errorMessage = text.substring(0, 150) || errorMessage;
+        }
+      }
+      throw new Error(errorMessage);
+    }
+
+    if (!contentType.includes("application/json")) {
+      const text = await res.text();
+      let extraInfo = "";
+      if (text.toLowerCase().includes("page not found") || text.toLowerCase().includes("cannot be found") || text.toLowerCase().includes("can't find") || res.status === 404) {
+        extraInfo = lang === "it"
+          ? " L'endpoint API non è stato trovato. Verifica di essere collegato sulla porta corretta (solitamente http://localhost:3000) e non direttamente sulla porta di Vite (solitamente http://localhost:5173)."
+          : " The API endpoint was not found. Ensure you are connected to the correct port (usually http://localhost:3000) and not directly to Vite's dev port (usually http://localhost:5173).";
+      }
+      throw new Error((lang === "it" 
+        ? "Il server non ha risposto con dati JSON validi." 
+        : "The server did not respond with valid JSON.") + extraInfo + ` (Risposta: "${text.slice(0, 50)}...")`);
+    }
+
+    return await res.json();
+  };
+
   // ── Handlers ────────────────────────────────
 
   const handleAnalyzeCustomPage = async (imageBase64: string, pageNum: number) => {
@@ -200,7 +243,7 @@ export default function App() {
     setAiResponse("");
     setActiveTab("analyzer");
     try {
-      const res = await fetch("/api/analyze", {
+      const data = await safeFetchJson("/api/analyze", {
         method: "POST",
         headers: apiHeaders(),
         body: JSON.stringify({
@@ -213,7 +256,6 @@ export default function App() {
           language: lang,
         }),
       });
-      const data = await res.json();
       if (data.success) {
         setAiResponse(data.text);
         setResponseCache(prev => ({ ...prev, [imageBase64]: data.text }));
@@ -236,7 +278,7 @@ export default function App() {
     setAiResponse("");
     setActiveTab("analyzer");
     try {
-      const res = await fetch("/api/analyze", {
+      const data = await safeFetchJson("/api/analyze", {
         method: "POST",
         headers: apiHeaders(),
         body: JSON.stringify({
@@ -249,7 +291,6 @@ export default function App() {
           language: lang,
         }),
       });
-      const data = await res.json();
       if (data.success) {
         setAiResponse(data.text);
       } else {
@@ -437,7 +478,7 @@ export default function App() {
     const label = hotspot ? (lang === "it" ? hotspot.nameIt : hotspot.name) : "Custom";
     const q = question || customQuestion;
     try {
-      const res = await fetch("/api/analyze", {
+      const data = await safeFetchJson("/api/analyze", {
         method: "POST",
         headers: apiHeaders(),
         body: JSON.stringify({
@@ -448,7 +489,6 @@ export default function App() {
           language: lang,
         }),
       });
-      const data = await res.json();
       if (data.success) {
         setAiResponse(data.text);
         const cacheKey = (documentSource === "custom" || documentSource === "voynich_pdf") ? activeUploadedImage : elementId;
@@ -471,7 +511,7 @@ export default function App() {
     setAutoDecryptLoading(true);
     setAutoDecryptResult(null);
     try {
-      const res = await fetch("/api/decrypt-auto", {
+      const data: DecryptionResult & { success: boolean; error?: string } = await safeFetchJson("/api/decrypt-auto", {
         method: "POST",
         headers: apiHeaders(),
         body: JSON.stringify({
@@ -481,7 +521,6 @@ export default function App() {
           language: lang,
         }),
       });
-      const data: DecryptionResult & { success: boolean; error?: string } = await res.json();
       if (data.success) {
         setAutoDecryptResult(data);
         if (data.suggestedMapping) setLetterMapping(data.suggestedMapping);
@@ -657,6 +696,32 @@ export default function App() {
           </a>
         </div>
       </header>
+
+      {/* Warning banner for incorrect port or protocol */}
+      {(isLocalFile || isWrongPort) && (
+        <div className="relative z-20 bg-amber-500/10 border-b border-amber-500/20 px-5 sm:px-8 py-3 text-amber-300 text-xs flex items-center justify-between gap-3 animate-pulse">
+          <div className="flex items-center gap-2">
+            <span className="text-base">⚠️</span>
+            <span>
+              {isLocalFile ? (
+                lang === "it"
+                  ? "Attenzione: L'applicazione è aperta come file locale (file://). Per far funzionare l'analisi con l'IA, devi avviarla da terminale ed aprirla all'indirizzo http://localhost:3000."
+                  : "Warning: The application is open as a local file (file://). To run AI analysis, start the server and access it at http://localhost:3000."
+              ) : (
+                lang === "it"
+                  ? `Attenzione: Sei collegato sulla porta di sviluppo di Vite (porta ${window.location.port}). L'analisi con l'IA non funzionerà se non accedi tramite la porta del server Express (http://localhost:3000).`
+                  : `Warning: You are connected to the Vite development port (port ${window.location.port}). AI analysis will not function unless you access the app via the Express server port (http://localhost:3000).`
+              )}
+            </span>
+          </div>
+          <a
+            href="http://localhost:3000"
+            className="px-3 py-1 bg-amber-500 text-black font-bold font-mono rounded hover:bg-amber-400 text-[10px] uppercase shrink-0 transition-colors"
+          >
+            {lang === "it" ? "Vai a porta 3000" : "Go to port 3000"}
+          </a>
+        </div>
+      )}
 
       {/* ── Main Grid ───────────────────────────── */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch relative z-10">
