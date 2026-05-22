@@ -347,7 +347,7 @@ export const DocumentLoader: React.FC<DocumentLoaderProps> = ({
       </div>
 
       {/* Upload Zone & Interactive preview pane */}
-      <div className="flex-1 flex flex-col p-4 overflow-y-auto" style={{ minHeight: "380px" }}>
+      <div className="flex-1 flex flex-col p-4 overflow-y-auto min-h-[260px] sm:min-h-[380px]">
         
         {/* Upload File Drag Zone if empty */}
         {!fileType && !pdfLoading && (
@@ -451,7 +451,7 @@ export const DocumentLoader: React.FC<DocumentLoaderProps> = ({
             </div>
 
             {/* Canvas Frame */}
-            <div className="flex-1 border border-white/10 rounded-xl overflow-hidden bg-[#efeadd] shadow-inner relative flex items-center justify-center p-2 min-h-[300px]">
+            <div className="flex-1 border border-white/10 rounded-xl overflow-hidden bg-[#efeadd] shadow-inner relative flex items-center justify-center p-2 min-h-[200px] sm:min-h-[300px]">
               {/* Scanline visual beam overlay */}
               <div className="absolute left-0 right-0 h-px bg-cyan-400/20 shadow-[0_0_8px_#22d3ee] pointer-events-none scan-beam"></div>
               

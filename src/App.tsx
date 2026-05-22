@@ -148,6 +148,14 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<"analyzer" | "sandbox" | "keyboard">("analyzer");
   const [selectedHotspot, setSelectedHotspot] = useState<Hotspot>(HOTSPOTS[0]);
+
+  const scrollToWorkbench = () => {
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      setTimeout(() => {
+        document.getElementById("decryption-workbench-col")?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
+  };
   const [customQuestion, setCustomQuestion] = useState<string>("");
   const [aiResponse, setAiResponse] = useState<string>("");
   const [aiLoading, setAiLoading] = useState<boolean>(false);
@@ -242,6 +250,7 @@ export default function App() {
     setAiLoading(true);
     setAiResponse("");
     setActiveTab("analyzer");
+    scrollToWorkbench();
     try {
       const data = await safeFetchJson("/api/analyze", {
         method: "POST",
@@ -277,6 +286,7 @@ export default function App() {
     setAiLoading(true);
     setAiResponse("");
     setActiveTab("analyzer");
+    scrollToWorkbench();
     try {
       const data = await safeFetchJson("/api/analyze", {
         method: "POST",
@@ -626,9 +636,9 @@ export default function App() {
       <div className="absolute top-0 left-0 right-0 h-px pointer-events-none z-20" style={{background: 'linear-gradient(90deg, transparent, rgba(34,211,238,0.4) 30%, rgba(99,102,241,0.5) 70%, transparent)'}} />
 
       {/* ── Header ──────────────────────────────── */}
-      <header className="h-16 flex items-center justify-between px-5 sm:px-8 relative z-20 shrink-0" style={{background: 'rgba(5,10,18,0.88)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.07)'}}>
+      <header className="min-h-16 h-auto py-3 sm:py-0 sm:h-16 flex flex-col md:flex-row items-center justify-between px-4 sm:px-8 gap-4 md:gap-0 relative z-20 shrink-0" style={{background: 'rgba(5,10,18,0.88)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.07)'}}>
         {/* Logo / Title */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full md:w-auto justify-center md:justify-start">
           <div className="w-9 h-9 flex items-center justify-center rounded-xl shrink-0 relative" style={{background: 'linear-gradient(135deg, rgba(34,211,238,0.15), rgba(99,102,241,0.15))', border: '1px solid rgba(34,211,238,0.25)', boxShadow: '0 0 16px rgba(34,211,238,0.12)'}}>
             <div className="w-4 h-4 border-2 rounded-sm" style={{borderColor: '#22d3ee', transform: 'rotate(45deg)', boxShadow: '0 0 8px rgba(34,211,238,0.4)'}} />
           </div>
@@ -644,7 +654,7 @@ export default function App() {
         </div>
 
         {/* Right controls */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex flex-wrap items-center justify-center md:justify-end gap-2 sm:gap-3 w-full md:w-auto">
           {/* Status pill */}
           <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full" style={{background: 'rgba(34,211,238,0.06)', border: '1px solid rgba(34,211,238,0.14)'}}>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" style={{boxShadow: '0 0 6px #34d399'}} />
@@ -652,7 +662,7 @@ export default function App() {
           </div>
 
           {/* API Key input */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full w-24 xs:w-32 sm:w-44 md:w-auto" style={{background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)'}}>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full w-full max-w-[260px] md:w-auto" style={{background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)'}}>
             <Key className="w-3 h-3 text-cyan-400/70 shrink-0" />
             <input
               type={showApiKey ? "text" : "password"}
@@ -793,14 +803,14 @@ export default function App() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className="flex-1 min-w-[100px] flex items-center justify-center gap-2 py-4 cursor-pointer transition-all"
+                  onClick={() => { setActiveTab(tab.id as any); scrollToWorkbench(); }}
+                  className="flex-1 min-w-[80px] flex flex-col xs:flex-row items-center justify-center gap-1 xs:gap-2 py-3 xs:py-4 cursor-pointer transition-all"
                   style={active
-                    ? {borderBottom: `2px solid ${accent}`, color: accent, background: accentBg, fontFamily: 'JetBrains Mono', fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase'}
-                    : {borderBottom: '2px solid transparent', color: '#475569', fontFamily: 'JetBrains Mono', fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase'}}
+                    ? {borderBottom: `2px solid ${accent}`, color: accent, background: accentBg, fontFamily: 'JetBrains Mono', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase'}
+                    : {borderBottom: '2px solid transparent', color: '#475569', fontFamily: 'JetBrains Mono', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase'}}
                 >
-                  <Icon className="w-4 h-4 shrink-0" style={{color: active ? accent : '#334155'}} />
-                  <span className="hidden sm:inline">{lang === "it" ? tab.labelIt : tab.labelEn}</span>
+                  <Icon className="w-3.5 h-3.5 xs:w-4 xs:h-4 shrink-0" style={{color: active ? accent : '#334155'}} />
+                  <span className="text-[9px] xs:text-[10px] sm:text-xs text-center xs:text-left">{lang === "it" ? tab.labelIt : tab.labelEn}</span>
                 </button>
               );
             })}
@@ -1116,11 +1126,11 @@ export default function App() {
                     </div>
                     <span className="text-[9px] uppercase tracking-widest" style={{fontFamily: 'JetBrains Mono', color: '#334155'}}>EVA → Sostituto</span>
                   </div>
-                  <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                  <div className="grid grid-cols-4 xs:grid-cols-5 sm:grid-cols-7 gap-1.5 sm:gap-2">
                     {EVA_ALPHABET.map(letter => {
                       const val = letterMapping[letter.eva] || "";
                       return (
-                        <div key={letter.eva} className="flex flex-col rounded-xl p-2 items-center justify-center gap-1.5 transition-all" style={{background: 'rgba(4,8,18,0.60)', border: '1px solid rgba(255,255,255,0.07)'}} onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(34,211,238,0.30)'; }} onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.07)'; }}>
+                        <div key={letter.eva} className="flex flex-col rounded-xl p-1.5 sm:p-2 items-center justify-center gap-1 sm:gap-1.5 transition-all" style={{background: 'rgba(4,8,18,0.60)', border: '1px solid rgba(255,255,255,0.07)'}} onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(34,211,238,0.30)'; }} onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.07)'; }}>
                           <div className="flex items-center gap-1 select-none">
                             <span className="text-xs font-bold" style={{fontFamily: 'JetBrains Mono', color: '#22d3ee'}}>{letter.eva}</span>
                           </div>
@@ -1130,8 +1140,8 @@ export default function App() {
                             value={val}
                             placeholder="·"
                             onChange={e => handleMappingChange(letter.eva, e.target.value)}
-                            className="select-all text-center text-xs font-bold focus:outline-none rounded-lg p-1"
-                            style={{width: '36px', background: 'rgba(2,5,12,0.70)', border: '1px solid rgba(255,255,255,0.08)', fontFamily: 'JetBrains Mono', color: '#34d399', caretColor: '#22d3ee'}}
+                            className="select-all text-center text-xs font-bold focus:outline-none rounded-lg p-0.5 sm:p-1 w-8 sm:w-9"
+                            style={{background: 'rgba(2,5,12,0.70)', border: '1px solid rgba(255,255,255,0.08)', fontFamily: 'JetBrains Mono', color: '#34d399', caretColor: '#22d3ee'}}
                             onFocus={e => { e.target.style.borderColor = 'rgba(34,211,238,0.40)'; }}
                             onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; }}
                           />
@@ -1251,25 +1261,25 @@ export default function App() {
                       Clear
                     </button>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-3 xs:grid-cols-4 gap-1.5 xs:gap-2">
                     {EVA_ALPHABET.map(letter => (
                       <button
                         key={letter.eva}
                         onClick={() => setTypedText(prev => prev + letter.eva)}
-                        className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer text-left transition-all"
+                        className="flex flex-col xs:flex-row items-center text-center xs:text-left gap-1 xs:gap-2.5 p-1.5 xs:p-2 sm:p-2.5 rounded-xl cursor-pointer transition-all"
                         style={{background: 'rgba(6,12,26,0.60)', border: '1px solid rgba(255,255,255,0.07)'}}
                         onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(34,211,238,0.28)'; (e.currentTarget as HTMLElement).style.background = 'rgba(34,211,238,0.05)'; }}
                         onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.07)'; (e.currentTarget as HTMLElement).style.background = 'rgba(6,12,26,0.60)'; }}
                       >
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background: 'rgba(0,0,0,0.40)', border: '1px solid rgba(255,255,255,0.06)'}}>
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{background: 'rgba(0,0,0,0.40)', border: '1px solid rgba(255,255,255,0.06)'}}>
                           <VoynichText text={letter.eva} size={15} />
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold text-slate-200" style={{fontFamily: 'JetBrains Mono'}}>
+                        <div className="flex flex-col items-center xs:items-start min-w-0">
+                          <span className="text-[10px] xs:text-xs font-bold text-slate-200" style={{fontFamily: 'JetBrains Mono'}}>
                             {letter.name.split(" ")[0]}
-                            <span className="text-[9px] ml-1" style={{color: '#475569'}}>({letter.eva})</span>
+                            <span className="text-[8px] xs:text-[9px] ml-0.5 xs:ml-1" style={{color: '#475569'}}>({letter.eva})</span>
                           </span>
-                          <span className="text-[9px] text-slate-500 uppercase truncate max-w-[90px]">{letter.approxSound}</span>
+                          <span className="text-[9px] text-slate-500 uppercase truncate max-w-[90px] hidden xs:block">{letter.approxSound}</span>
                         </div>
                       </button>
                     ))}
