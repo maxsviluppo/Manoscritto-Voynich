@@ -654,7 +654,7 @@ export default function App() {
         </div>
 
         {/* Right controls */}
-        <div className="flex flex-wrap items-center justify-center md:justify-end gap-2 sm:gap-3 w-full md:w-auto">
+        <div className="flex items-center justify-end gap-1.5 sm:gap-2.5 w-full md:w-auto flex-nowrap">
           {/* Status pill */}
           <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full" style={{background: 'rgba(34,211,238,0.06)', border: '1px solid rgba(34,211,238,0.14)'}}>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" style={{boxShadow: '0 0 6px #34d399'}} />
@@ -662,32 +662,32 @@ export default function App() {
           </div>
 
           {/* API Key input */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full w-full max-w-[260px] md:w-auto" style={{background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)'}}>
+          <div className="flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full w-full max-w-[150px] xs:max-w-[200px] sm:max-w-[260px] md:w-auto min-w-0 shrink" style={{background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)'}}>
             <Key className="w-3 h-3 text-cyan-400/70 shrink-0" />
             <input
               type={showApiKey ? "text" : "password"}
               value={customApiKey}
               onChange={e => handleApiKeyChange(e.target.value)}
               placeholder="API KEY"
-              className="bg-transparent focus:outline-none text-cyan-300 w-full placeholder:text-slate-600"
-              style={{fontFamily: 'JetBrains Mono, monospace', fontSize: '9px', letterSpacing: '0.05em'}}
+              className="bg-transparent focus:outline-none text-cyan-300 w-full min-w-0 placeholder:text-slate-600 text-[16px] md:text-[9px]"
+              style={{fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.05em'}}
             />
-            <button onClick={() => setShowApiKey(v => !v)} className="btn-icon" type="button" style={{width: '22px', height: '22px'}} title={showApiKey ? "Nascondi" : "Mostra"}>
+            <button onClick={() => setShowApiKey(v => !v)} className="btn-icon shrink-0" type="button" style={{width: '20px', height: '20px'}} title={showApiKey ? "Nascondi" : "Mostra"}>
               {showApiKey ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
             </button>
-            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="btn-icon" style={{width: '22px', height: '22px'}} title="Ottieni API Key">
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="btn-icon shrink-0" style={{width: '20px', height: '20px'}} title="Ottieni API Key">
               <HelpCircle className="w-3 h-3" />
             </a>
           </div>
 
           {/* Language toggle */}
-          <div className="flex items-center rounded-full p-0.5" style={{background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)'}}>
+          <div className="flex items-center rounded-full p-0.5 shrink-0" style={{background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)'}}>
             {(["it", "en"] as const).map(l => (
               <button
                 key={l}
                 onClick={() => setLang(l)}
-                className="px-3 py-1 rounded-full cursor-pointer transition-all"
-                style={lang === l ? {background: 'linear-gradient(135deg,#06b6d4,#6366f1)', color: '#fff', fontFamily: 'JetBrains Mono', fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', boxShadow: '0 0 12px rgba(34,211,238,0.25)'} : {color: '#64748b', fontFamily: 'JetBrains Mono', fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em'}}
+                className={`rounded-full cursor-pointer transition-all text-[9px] sm:text-[10px] px-1.5 py-0.5 sm:px-3 sm:py-1 ${lang === l ? 'font-bold' : 'font-semibold'}`}
+                style={lang === l ? {background: 'linear-gradient(135deg,#06b6d4,#6366f1)', color: '#fff', fontFamily: 'JetBrains Mono', boxShadow: '0 0 12px rgba(34,211,238,0.25)'} : {color: '#64748b', fontFamily: 'JetBrains Mono'}}
               >
                 {l.toUpperCase()}
               </button>
@@ -699,7 +699,7 @@ export default function App() {
             href="https://it.wikipedia.org/wiki/Manoscritto_Voynich"
             target="_blank"
             rel="noreferrer"
-            className="btn-icon hidden sm:inline-flex"
+            className="btn-icon flex shrink-0"
             title={lang === "it" ? "Documentazione Storica" : "Historical Docs"}
           >
             <BookOpen className="w-3.5 h-3.5" />
@@ -919,7 +919,7 @@ export default function App() {
                     value={customQuestion}
                     onChange={e => setCustomQuestion(e.target.value)}
                     placeholder={lang === "it" ? "es. Quali teorie associano questo foglio alla Satureja?" : "e.g., Does this leaf match Ruta graveolens?"}
-                    className="flex-1 rounded-xl px-4 py-3 text-xs text-white placeholder:text-slate-600 focus:outline-none transition-all"
+                    className="flex-1 rounded-xl px-4 py-3 text-[16px] md:text-xs text-white placeholder:text-slate-600 focus:outline-none transition-all"
                     style={{background: 'rgba(4,8,18,0.70)', border: '1px solid rgba(255,255,255,0.09)', fontFamily: 'JetBrains Mono', caretColor: '#22d3ee'}}
                     onFocus={e => { e.target.style.borderColor = 'rgba(34,211,238,0.35)'; e.target.style.boxShadow = '0 0 0 3px rgba(34,211,238,0.06)'; }}
                     onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.09)'; e.target.style.boxShadow = 'none'; }}
@@ -949,8 +949,8 @@ export default function App() {
                         const found = DECRYPTION_THEORIES.find(t => t.id === e.target.value);
                         if (found) setSelectedTheory(found);
                       }}
-                      className="w-full cursor-pointer appearance-none focus:outline-none transition-all"
-                      style={{background: 'rgba(4,8,18,0.80)', border: '1px solid rgba(34,211,238,0.18)', borderRadius: '14px', padding: '11px 16px', fontFamily: 'JetBrains Mono', fontSize: '12px', fontWeight: 700, color: '#e2e8f0', boxShadow: '0 0 0 0 transparent'}}
+                      className="w-full cursor-pointer appearance-none focus:outline-none transition-all text-[16px] md:text-[12px]"
+                      style={{background: 'rgba(4,8,18,0.80)', border: '1px solid rgba(34,211,238,0.18)', borderRadius: '14px', padding: '11px 16px', fontFamily: 'JetBrains Mono', fontWeight: 700, color: '#e2e8f0', boxShadow: '0 0 0 0 transparent'}}
                     >
                       {DECRYPTION_THEORIES.map(t => (
                         <option key={t.id} value={t.id} style={{background: '#080b10', color: '#cbd5e1'}}>
@@ -1140,7 +1140,7 @@ export default function App() {
                             value={val}
                             placeholder="·"
                             onChange={e => handleMappingChange(letter.eva, e.target.value)}
-                            className="select-all text-center text-xs font-bold focus:outline-none rounded-lg p-0.5 sm:p-1 w-8 sm:w-9"
+                            className="select-all text-center text-[16px] sm:text-xs font-bold focus:outline-none rounded-lg p-0.5 sm:p-1 w-10 sm:w-9"
                             style={{background: 'rgba(2,5,12,0.70)', border: '1px solid rgba(255,255,255,0.08)', fontFamily: 'JetBrains Mono', color: '#34d399', caretColor: '#22d3ee'}}
                             onFocus={e => { e.target.style.borderColor = 'rgba(34,211,238,0.40)'; }}
                             onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; }}
@@ -1227,7 +1227,7 @@ export default function App() {
                       value={typedText}
                       onChange={e => setTypedText(e.target.value)}
                       placeholder="Scrivi qui usando lettere EVA..."
-                      className="w-full rounded-xl px-4 py-3 text-sm text-emerald-400 focus:outline-none transition-all"
+                      className="w-full rounded-xl px-4 py-3 text-[16px] sm:text-sm text-emerald-400 focus:outline-none transition-all"
                       style={{background: 'rgba(4,8,18,0.70)', border: '1px solid rgba(255,255,255,0.09)', fontFamily: 'JetBrains Mono', caretColor: '#22d3ee'}}
                       onFocus={e => { e.target.style.borderColor = 'rgba(34,211,238,0.35)'; }}
                       onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.09)'; }}
