@@ -1,5 +1,6 @@
 import app from "./api/index";
 import path from "path";
+import express from "express";
 import { createServer as createViteServer } from "vite";
 
 async function startServer() {

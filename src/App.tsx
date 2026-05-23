@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Hotspot, Theory, LetterMap, DecryptionResult } from "./types";
 import { DECRYPTION_THEORIES, EVA_ALPHABET } from "./data";
 import { VoynichText } from "./components/VoynichText";
@@ -23,7 +23,11 @@ import {
   Maximize2,
   Minus,
   Plus,
-  RotateCcw
+  RotateCcw,
+  LogOut,
+  Lock,
+  Mail,
+  User
 } from "lucide-react";
 
 // ─────────────────────────────────────────────
@@ -140,6 +144,16 @@ const HOTSPOTS: Hotspot[] = [
 ];
 
 export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("voynich_logged_in") === "true";
+    }
+    return false;
+  });
+  const [userInput, setUserInput] = useState<string>("");
+  const [passwordInput, setPasswordInput] = useState<string>("");
+  const [loginError, setLoginError] = useState<string>("");
+
   const language = useState<"it" | "en">("it");
   const [lang, setLang] = language;
 
@@ -148,6 +162,17 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<"analyzer" | "sandbox" | "keyboard">("analyzer");
   const [selectedHotspot, setSelectedHotspot] = useState<Hotspot>(HOTSPOTS[0]);
+
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (userInput.trim() === "manoscritto" && passwordInput === "Max1974") {
+      setIsLoggedIn(true);
+      localStorage.setItem("voynich_logged_in", "true");
+      setLoginError("");
+    } else {
+      setLoginError(lang === "it" ? "Credenziali errate. Riprova." : "Invalid credentials. Please try again.");
+    }
+  };
 
   const scrollToWorkbench = () => {
     if (typeof window !== "undefined" && window.innerWidth < 1024) {
@@ -625,6 +650,166 @@ export default function App() {
   const coincidenceIndex = computeCoincidenceIndex(pageEvaTranscription);
 
   // ── RENDER ──────────────────────────────────
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen text-slate-300 flex items-center justify-center font-sans overflow-x-hidden relative p-4" style={{background: 'linear-gradient(135deg, #020408 0%, #050a14 35%, #060b12 65%, #04080d 100%)'}}>
+        {/* Dot grid background */}
+        <div
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{ backgroundImage: "radial-gradient(rgba(34,211,238,0.04) 1px, transparent 1px)", backgroundSize: "28px 28px" }}
+        />
+        {/* Top gradient accent line */}
+        <div className="absolute top-0 left-0 right-0 h-px pointer-events-none z-20" style={{background: 'linear-gradient(90deg, transparent, rgba(34,211,238,0.4) 30%, rgba(99,102,241,0.5) 70%, transparent)'}} />
+
+        {/* Outer Container Card */}
+        <div className="w-full max-w-5xl rounded-3xl overflow-hidden z-10 grid grid-cols-1 lg:grid-cols-12 shadow-[0_20px_60px_rgba(0,0,0,0.6)] border border-white/10" style={{background: 'rgba(5, 10, 18, 0.75)', backdropFilter: 'blur(24px)'}}>
+          
+          {/* Left panel: Book Cover Image & Large Title */}
+          <div className="lg:col-span-6 relative flex flex-col justify-between p-8 sm:p-12 overflow-hidden border-b lg:border-b-0 lg:border-r border-white/5 min-h-[300px] sm:min-h-[450px]">
+            {/* Background image cover */}
+            <div className="absolute inset-0 z-0">
+              <img 
+                src="/voynich_cover.png" 
+                alt="Voynich Manuscript page" 
+                className="w-full h-full object-cover filter brightness-[0.4] contrast-[1.1] scale-105"
+              />
+              <div 
+                className="absolute inset-0" 
+                style={{background: 'linear-gradient(to bottom, rgba(5,10,18,0.2) 0%, rgba(5,10,18,0.7) 60%, rgba(5,10,18,0.95) 100%)'}} 
+              />
+            </div>
+
+            {/* Language toggle at top left of cover */}
+            <div className="z-10 flex justify-end">
+              <div className="flex items-center rounded-full p-0.5" style={{background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.08)'}}>
+                {(["it", "en"] as const).map(l => (
+                  <button
+                    key={l}
+                    onClick={() => setLang(l)}
+                    className={`rounded-full cursor-pointer transition-all text-[9px] sm:text-[10px] px-2.5 py-0.5 sm:px-3 sm:py-1 ${lang === l ? 'font-bold' : 'font-semibold'}`}
+                    style={lang === l ? {background: 'linear-gradient(135deg,#06b6d4,#6366f1)', color: '#fff', fontFamily: 'JetBrains Mono', boxShadow: '0 0 12px rgba(34,211,238,0.25)'} : {color: '#64748b', fontFamily: 'JetBrains Mono'}}
+                  >
+                    {l.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Large Title and subtitle at bottom of cover */}
+            <div className="z-10 mt-auto space-y-4">
+              <div className="w-12 h-12 flex items-center justify-center rounded-xl relative" style={{background: 'linear-gradient(135deg, rgba(34,211,238,0.15), rgba(99,102,241,0.15))', border: '1px solid rgba(34,211,238,0.25)', boxShadow: '0 0 16px rgba(34,211,238,0.12)'}}>
+                <div className="w-5 h-5 border-2 rounded-sm" style={{borderColor: '#22d3ee', transform: 'rotate(45deg)', boxShadow: '0 0 8px rgba(34,211,238,0.4)'}} />
+              </div>
+              <div className="space-y-2">
+                <h1 className="text-2xl sm:text-4xl font-extrabold tracking-wider leading-tight text-white" style={{fontFamily: 'Cinzel, Georgia, serif', textShadow: '0 2px 10px rgba(0,0,0,0.5)'}}>
+                  {lang === "it" ? "TRADUZIONE DEL MANUALE DI VOYNICH" : "VOYNICH MANUSCRIPT TRANSLATION"}
+                </h1>
+                <p className="text-xs sm:text-sm font-mono tracking-widest text-cyan-400 uppercase">
+                  {lang === "it" ? "Crittanalisi Botanica & Intelligenza Artificiale" : "Botanical Cryptanalysis & Artificial Intelligence"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right panel: Login Form & Info */}
+          <div className="lg:col-span-6 flex flex-col justify-between p-8 sm:p-12 relative z-10" style={{background: 'rgba(3,7,15,0.45)'}}>
+            
+            {/* Info text */}
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-mono font-bold tracking-widest text-indigo-400 uppercase" style={{background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)'}}>
+                  <Info className="w-3 h-3" />
+                  {lang === "it" ? "Informazioni sul Software" : "Software Information"}
+                </div>
+                <p className="text-xs sm:text-sm leading-relaxed text-slate-300 font-sans">
+                  {lang === "it" 
+                    ? "Il software tratta del cifrario del manoscritto in questione. Un metodo esclusivo creato da Castro Massimo, generato con le nuove tecnologie intelligenti; il lavoro è sottoposto a sperimentazioni per l'implemento del metodo."
+                    : "The software deals with the cipher of the manuscript in question. An exclusive method created by Castro Massimo, generated with the new intelligent technologies; the work is subjected to experiments for the implementation of the method."}
+                </p>
+              </div>
+
+              {/* Contact Link */}
+              <div className="p-4 rounded-2xl border border-white/5 bg-white/2 space-y-1">
+                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest block">
+                  {lang === "it" ? "Contatti & Richieste" : "Contacts & Enquiries"}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Mail className="w-3.5 h-3.5 text-cyan-400/80" />
+                  <a 
+                    href="mailto:castromassimo@gmail.com" 
+                    className="text-xs sm:text-sm font-semibold font-mono text-cyan-400 hover:text-cyan-300 transition-colors underline"
+                  >
+                    castromassimo@gmail.com
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Login Form */}
+            <form onSubmit={handleLoginSubmit} className="mt-8 space-y-5">
+              <h2 className="text-sm font-mono font-bold uppercase tracking-widest text-slate-400">
+                {lang === "it" ? "Credenziali di Accesso" : "Access Credentials"}
+              </h2>
+
+              {loginError && (
+                <div className="p-3.5 text-xs text-red-400 bg-red-500/10 border border-red-500/25 rounded-xl font-medium">
+                  ⚠️ {loginError}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {/* Username Field */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-mono font-bold uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
+                    <User className="w-3 h-3" />
+                    {lang === "it" ? "Nome Utente" : "Username"}
+                  </label>
+                  <div className="relative flex items-center">
+                    <input 
+                      type="text" 
+                      required
+                      value={userInput}
+                      onChange={e => setUserInput(e.target.value)}
+                      placeholder="Username"
+                      className="w-full bg-black/40 border border-white/10 focus:border-cyan-500 focus:outline-none text-slate-200 text-sm px-4 py-3 rounded-xl placeholder:text-slate-600 transition-all font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Password Field */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-mono font-bold uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
+                    <Lock className="w-3 h-3" />
+                    {lang === "it" ? "Password" : "Password"}
+                  </label>
+                  <div className="relative flex items-center">
+                    <input 
+                      type="password" 
+                      required
+                      value={passwordInput}
+                      onChange={e => setPasswordInput(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full bg-black/40 border border-white/10 focus:border-cyan-500 focus:outline-none text-slate-200 text-sm px-4 py-3 rounded-xl placeholder:text-slate-600 transition-all font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button 
+                type="submit"
+                className="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold uppercase tracking-wider text-xs rounded-xl hover:opacity-95 transition-all shadow-[0_4px_20px_rgba(6,182,212,0.25)] hover:shadow-[0_4px_25px_rgba(6,182,212,0.4)] cursor-pointer font-mono"
+              >
+                {lang === "it" ? "Accedi al Portale" : "Access Decipherer"}
+              </button>
+            </form>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen text-slate-300 flex flex-col font-sans overflow-x-hidden relative selection:bg-cyan-500/30 selection:text-white" style={{background: 'linear-gradient(135deg, #020408 0%, #050a14 35%, #060b12 65%, #04080d 100%)', backgroundAttachment: 'fixed'}}>
       {/* Dot grid background */}
@@ -704,6 +889,19 @@ export default function App() {
           >
             <BookOpen className="w-3.5 h-3.5" />
           </a>
+
+          {/* Logout button */}
+          <button
+            onClick={() => {
+              setIsLoggedIn(false);
+              localStorage.removeItem("voynich_logged_in");
+            }}
+            className="btn-icon flex shrink-0 cursor-pointer"
+            style={{background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171'}}
+            title={lang === "it" ? "Disconnetti" : "Logout"}
+          >
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
         </div>
       </header>
 
